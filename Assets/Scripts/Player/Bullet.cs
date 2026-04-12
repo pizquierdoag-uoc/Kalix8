@@ -1,0 +1,38 @@
+using UnityEngine;
+
+public class Bullet : MonoBehaviour
+{
+    [Header("Propiedades")]
+    public float speed    = 14f;
+    public int   damage   = 1;
+    public float lifetime = 3f;
+
+    Vector2 _direction;
+    float   _timer;
+
+    public void Launch(Vector2 direction)
+    {
+        _direction   = direction.normalized;
+        _timer       = 0f;
+        transform.up = _direction;
+    }
+
+    void Update()
+    {
+        transform.Translate(_direction * speed * Time.deltaTime, Space.World);
+        _timer += Time.deltaTime;
+        if (_timer >= lifetime) gameObject.SetActive(false);
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Enemy"))
+        {
+            other.GetComponent<EnemyHealth>()?.TakeDamage(damage);
+            ScoreManager.Instance?.AddScoreSmallEnemy();
+            AudioManager.Instance?.PlaySFX("enemy_hit");
+            gameObject.SetActive(false);
+        }
+        if (other.CompareTag("Player") || other.CompareTag("PlayerBullet")) return;
+    }
+}
