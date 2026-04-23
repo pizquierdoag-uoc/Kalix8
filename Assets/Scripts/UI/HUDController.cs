@@ -45,7 +45,13 @@ public class HUDController : MonoBehaviour
     [Tooltip("Segundos que espera antes de parar el scroll y hacer fadeout")]
     public float gameOverWait = 5f;
 
+    [Header("Timer de fase")]
+    public bool showTimer = true;
+    public TextMeshProUGUI txtTimer;
+
     Coroutine _scorePopRoutine;
+    float _phaseTime;
+    bool  _timerRunning;
 
     void Start()
     {
@@ -54,7 +60,39 @@ public class HUDController : MonoBehaviour
         UpdateLives(GameSettings.StartingLives);
         UpdateWeapon("NORMAL", 0);
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
+        ResetTimer();
+        StartTimer();
     }
+
+    void Update()
+    {
+        if (!_timerRunning || !showTimer) return;
+        if (GameManager.Instance != null && !GameManager.Instance.IsPlaying) return;
+        _phaseTime += Time.deltaTime;
+        if (txtTimer != null)
+        {
+            int mins = (int)_phaseTime / 60;
+            int secs = (int)_phaseTime % 60;
+            txtTimer.text = string.Format("{0:00}:{1:00}", mins, secs);
+        }
+    }
+
+    public void StartTimer()
+    {
+        _timerRunning = true;
+        if (txtTimer != null) txtTimer.gameObject.SetActive(showTimer);
+    }
+
+    public void StopTimer()  => _timerRunning = false;
+
+    public void ResetTimer()
+    {
+        _phaseTime = 0f;
+        if (txtTimer != null) txtTimer.text = "00:00";
+        if (txtTimer != null) txtTimer.gameObject.SetActive(showTimer);
+    }
+
+    public float PhaseTime => _phaseTime;
 
     public void UpdateScore(int total, int earned)
     {
@@ -72,9 +110,14 @@ public class HUDController : MonoBehaviour
         for (int i = 0; i < lifeIcons.Length; i++)
         {
             if (lifeIcons[i] == null) continue;
-            lifeIcons[i].color = i < currentLives ? lifeActiveColor : lifeInactiveColor;
-            if (i == currentLives) StartCoroutine(ScalePunch(lifeIcons[i].transform));
+            bool show = i < currentLives;
+            lifeIcons[i].gameObject.SetActive(show);
+            if (show) lifeIcons[i].color = lifeActiveColor;
         }
+        // Punch en el último icono visible al perder una vida
+        int lastIdx = currentLives - 1;
+        if (lastIdx >= 0 && lastIdx < lifeIcons.Length && lifeIcons[lastIdx] != null)
+            StartCoroutine(ScalePunch(lifeIcons[lastIdx].transform));
     }
 
     public void UpdateWeapon(string weaponName, int level)
@@ -106,6 +149,24 @@ public class HUDController : MonoBehaviour
 
     IEnumerator GameOverSequence()
     {
+        // Fade image empieza transparente (pantalla limpia mientras se ve la explosión)
+        if (fadeImage != null)
+        {
+            fadeImage.gameObject.SetActive(true);
+            fadeImage.color = new Color(0, 0, 0, 0);
+        }
+
+        // Espera gameOverWait segundos (explosión visible + pausa dramática)
+        yield return new WaitForSeconds(gameOverWait);
+
+        // Para el scroll y elimina enemigos antes de mostrar el panel
+        FindAnyObjectByType<ScrollManager>()?.PauseScroll();
+        EnemyManager em = FindAnyObjectByType<EnemyManager>();
+        if (em != null) { em.StopAllCoroutines(); em.enabled = false; }
+        foreach (var eh in FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None))
+            if (eh != null && eh.gameObject.activeSelf) eh.gameObject.SetActive(false);
+
+        // Ahora sí muestra el panel Game Over
         if (gameOverPanel != null)
         {
             gameOverPanel.SetActive(true);
@@ -115,34 +176,24 @@ public class HUDController : MonoBehaviour
                     : "00000000";
         }
 
-        // Asegura que la imagen de fundido empiece transparente
-        if (fadeImage != null)
-        {
-            fadeImage.gameObject.SetActive(true);
-            fadeImage.color = new Color(0, 0, 0, 0);
-        }
+        // Pausa para que el jugador lea el resultado
+        yield return new WaitForSeconds(3f);
 
-        yield return new WaitForSeconds(gameOverWait);
-
-        FindAnyObjectByType<ScrollManager>()?.PauseScroll();
-        EnemyManager em = FindAnyObjectByType<EnemyManager>();
-        if (em != null) { em.StopAllCoroutines(); em.enabled = false; }
-        foreach (var eh in FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None))
-            if (eh != null && eh.gameObject.activeSelf) eh.gameObject.SetActive(false);
-
+        // Fundido a negro
         if (fadeImage != null)
         {
             float t = 0f;
             while (t < 2f)
             {
-                t += Time.deltaTime;
+                t += Time.unscaledDeltaTime;
                 fadeImage.color = new Color(0, 0, 0, Mathf.Clamp01(t / 2f));
                 yield return null;
             }
             fadeImage.color = new Color(0, 0, 0, 1f);
         }
 
-        // El jugador puede pulsar el botón para ir al menú
+        // Vuelve a la pantalla de título
+        GameManager.Instance?.GoToTitleScreen();
     }
 
     public void HideGameOver() => gameOverPanel?.SetActive(false);
@@ -169,14 +220,15 @@ public class HUDController : MonoBehaviour
 
     IEnumerator ScalePunch(Transform target)
     {
+        Vector3 originalScale = target.localScale;
         float t = 0f;
         while (t < 0.2f)
         {
             float s = 1f + Mathf.Sin(t / 0.2f * Mathf.PI) * 0.25f;
-            target.localScale = Vector3.one * s;
+            target.localScale = originalScale * s;
             t += Time.deltaTime;
             yield return null;
         }
-        target.localScale = Vector3.one;
+        target.localScale = originalScale;
     }
 }

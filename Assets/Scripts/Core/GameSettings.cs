@@ -94,7 +94,7 @@ public static class GameSettings
     public static void SetLives(int lives)
     {
         EnsureLoaded();
-        _lives = Mathf.Clamp(lives, 3, 5);
+        _lives = Mathf.Clamp(lives, 2, 5);
         PlayerPrefs.SetInt(KEY_LIVES, _lives);
         PlayerPrefs.Save();
     }

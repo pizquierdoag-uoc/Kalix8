@@ -41,6 +41,7 @@ public class FrameAnimator : MonoBehaviour
             {
                 _current = frames.Length - 1;
                 _playing = false;
+                gameObject.SetActive(false);
                 return;
             }
         }

@@ -8,10 +8,6 @@ public class MainMenuController : MonoBehaviour
     public TextMeshProUGUI hiScoreText;
     public GameObject      optionsPanel;
 
-    [Header("Audio")]
-    public AudioSource musicSource;
-    public AudioClip   buttonSound;
-
     void Start()
     {
         int hiScore = PlayerPrefs.GetInt("HiScore", 0);
@@ -21,8 +17,8 @@ public class MainMenuController : MonoBehaviour
         if (optionsPanel != null)
             optionsPanel.SetActive(false);
 
-        if (musicSource != null && !musicSource.isPlaying)
-            musicSource.Play();
+        // La música la gestiona AudioManager — no se duplica con una fuente propia
+        AudioManager.Instance?.PlayMenuMusic();
     }
 
     public void PlayGame()
@@ -40,7 +36,11 @@ public class MainMenuController : MonoBehaviour
         if (optionsPanel != null) optionsPanel.SetActive(true);
     }
 
-    public void CloseOptions() => optionsPanel?.SetActive(false);
+    public void CloseOptions()
+    {
+        PlayButtonSound();
+        optionsPanel?.SetActive(false);
+    }
 
     public void QuitGame()
     {
@@ -48,9 +48,5 @@ public class MainMenuController : MonoBehaviour
         Application.Quit();
     }
 
-    void PlayButtonSound()
-    {
-        if (buttonSound != null)
-            AudioSource.PlayClipAtPoint(buttonSound, Camera.main.transform.position);
-    }
+    void PlayButtonSound() => AudioManager.Instance?.PlaySFX("menu_confirm");
 }

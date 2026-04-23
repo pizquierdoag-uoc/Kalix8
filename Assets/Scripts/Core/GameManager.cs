@@ -6,6 +6,13 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void EnsureExists()
+    {
+        if (Instance != null) return;
+        new GameObject("GameManager").AddComponent<GameManager>();
+    }
+
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -16,16 +23,15 @@ public class GameManager : MonoBehaviour
     public enum GameState { MainMenu, Playing, Paused, GameOver }
     public GameState CurrentState { get; private set; }
 
-    [Header("Configuración")]
-    public int startingLives = 3;
-
+    // Las vidas iniciales se leen de GameSettings (se cambian desde Opciones)
     public int  CurrentLives { get; private set; }
     public int  CurrentScore { get; private set; }
     public bool IsPlaying    => CurrentState == GameState.Playing;
 
     void Start()
     {
-        ChangeState(GameState.MainMenu);
+        string scene = SceneManager.GetActiveScene().name;
+        ChangeState(scene == "Game" ? GameState.Playing : GameState.MainMenu);
     }
 
     public void ChangeState(GameState newState)
@@ -82,6 +88,12 @@ public class GameManager : MonoBehaviour
     {
         ChangeState(GameState.MainMenu);
         SceneManager.LoadScene("MainMenu");
+    }
+
+    public void GoToTitleScreen()
+    {
+        ChangeState(GameState.MainMenu);
+        SceneManager.LoadScene("TitleScreen");
     }
 
     public void PlayerDied()

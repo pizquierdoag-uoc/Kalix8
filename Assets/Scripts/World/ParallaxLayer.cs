@@ -2,27 +2,36 @@ using UnityEngine;
 
 public class ParallaxLayer : MonoBehaviour
 {
-    [Header("Velocidad relativa (0=quieto, 1=velocidad base)")]
+    public enum LayerMode { Tiled, SingleObject }
+
+    [Header("Modo de scroll")]
+    public LayerMode mode = LayerMode.Tiled;
+
+    [Header("Parallax")]
     [Range(0f, 2f)] public float speedMultiplier = 0.5f;
 
-    [Header("Ancho de un tile en unidades Unity (pixels / PPU)")]
+    [Header("Tiled — ancho de un tile en unidades Unity")]
     public float tileWidth = 20f;
 
-    [Header("Modo objeto único (para el planeta)")]
-    public bool  singleObject = false;
-    public float respawnX     = 30f;
+    [Header("SingleObject — X de reaparición")]
+    public float respawnX = 25f;
 
-    [HideInInspector] public float baseScrollSpeed;
-
+    float     _baseSpeed;
+    float     _scrollOffset;
     Transform _tileA;
     Transform _tileB;
 
     void Awake()
     {
-        if (singleObject) return;
+        if (mode == LayerMode.Tiled)
+            InitTiles();
+    }
+
+    void InitTiles()
+    {
         if (transform.childCount < 2)
         {
-            Debug.LogError($"[ParallaxLayer] '{gameObject.name}' necesita 2 hijos (TileA y TileB).");
+            Debug.LogError($"[ParallaxLayer] '{name}' modo Tiled requiere 2 hijos (TileA y TileB).");
             enabled = false;
             return;
         }
@@ -33,31 +42,54 @@ public class ParallaxLayer : MonoBehaviour
     }
 
     void Update()
-    {        
-        if (GameManager.Instance != null && !GameManager.Instance.IsPlaying) return;
-        float move = baseScrollSpeed * speedMultiplier * Time.deltaTime;
-        if (singleObject) UpdateSingleObject(move);
-        else              UpdateTiledLayer(move);
+    {
+        float delta = _baseSpeed * speedMultiplier * Time.deltaTime;
+        if (delta == 0f) return;
+
+        if (mode == LayerMode.Tiled) ScrollTiled(delta);
+        else                         ScrollSingle(delta);
     }
 
-    void UpdateTiledLayer(float move)
+    // Mueve cada tile en espacio local; el padre permanece estático.
+    void ScrollTiled(float delta)
     {
-        transform.Translate(Vector3.left * move);
-        if (_tileA.position.x < -tileWidth) _tileA.localPosition = _tileB.localPosition + Vector3.right * tileWidth;
-        if (_tileB.position.x < -tileWidth) _tileB.localPosition = _tileA.localPosition + Vector3.right * tileWidth;
+        _scrollOffset = (_scrollOffset + delta) % tileWidth;
+
+        Vector3 a = _tileA.localPosition;
+        Vector3 b = _tileB.localPosition;
+        a.x = -_scrollOffset;
+        b.x = tileWidth - _scrollOffset;
+        _tileA.localPosition = a;
+        _tileB.localPosition = b;
     }
 
-    void UpdateSingleObject(float move)
+    void ScrollSingle(float delta)
     {
-        transform.Translate(Vector3.left * move);
+        transform.Translate(Vector3.left * delta, Space.World);
         if (transform.position.x < -respawnX)
         {
-            Vector3 pos = transform.position;
-            pos.x = respawnX;
-            transform.position = pos;
+            Vector3 p = transform.position;
+            p.x = respawnX;
+            transform.position = p;
         }
     }
 
+    // Llamado por ScrollManager en cada frame.
+    public void SetBaseSpeed(float speed) => _baseSpeed = speed;
+
     public void Pause()  => enabled = false;
     public void Resume() => enabled = true;
+
+#if UNITY_EDITOR
+    void OnDrawGizmosSelected()
+    {
+        if (mode != LayerMode.Tiled) return;
+        Gizmos.color = new Color(0f, 1f, 1f, 0.3f);
+        Vector3 c = transform.position;
+        Gizmos.DrawWireCube(c + Vector3.right * tileWidth * 0.5f,
+            new Vector3(tileWidth, 11f, 0f));
+        Gizmos.DrawWireCube(c + Vector3.right * tileWidth * 1.5f,
+            new Vector3(tileWidth, 11f, 0f));
+    }
+#endif
 }

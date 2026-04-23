@@ -21,6 +21,7 @@ public class AudioManager : MonoBehaviour
     public AudioClip musicGame;
     public AudioClip musicBoss;
     public AudioClip musicGameOver;
+    public AudioClip musicVictory;
     [Range(0f,1f)] public float musicVolume = 0.6f;
 
     [Header("SFX — Jugador")]
@@ -60,12 +61,13 @@ public class AudioManager : MonoBehaviour
         else { musicSource.clip = clip; musicSource.Play(); }
     }
 
-    public void PlayTitleMusic()     => PlayMusic(musicTitle);
-    public void PlayMenuMusic()     => PlayMusic(musicMenu);
-    public void PlayGameMusic()     => PlayMusic(musicGame);
-    public void PlayBossMusic()     => PlayMusic(musicBoss);
-    public void PlayGameOverMusic() => PlayMusic(musicGameOver, false);
-    public void StopMusic()         => musicSource?.Stop();
+    public void PlayTitleMusic()   => PlayMusic(musicTitle);
+    public void PlayMenuMusic()    => PlayMusic(musicMenu);
+    public void PlayGameMusic()    => PlayMusic(musicGame);
+    public void PlayBossMusic()    => PlayMusic(musicBoss);
+    public void PlayGameOverMusic()=> PlayMusic(musicGameOver, false);
+    public void PlayVictoryMusic() => PlayMusic(musicVictory != null ? musicVictory : musicMenu);
+    public void StopMusic()        => musicSource?.Stop();
 
     public void SetMusicVolume(float v)
     {
@@ -127,7 +129,7 @@ public class AudioManager : MonoBehaviour
         float fadeDuration = 0.8f;
         float startVolume  = musicSource.volume;
 
-        for (float t = 0; t < fadeDuration; t += Time.deltaTime)
+        for (float t = 0; t < fadeDuration; t += Time.unscaledDeltaTime)
         {
             musicSource.volume = Mathf.Lerp(startVolume, 0f, t / fadeDuration);
             yield return null;
@@ -137,7 +139,7 @@ public class AudioManager : MonoBehaviour
         musicSource.volume = 0f;
         musicSource.Play();
 
-        for (float t = 0; t < fadeDuration; t += Time.deltaTime)
+        for (float t = 0; t < fadeDuration; t += Time.unscaledDeltaTime)
         {
             musicSource.volume = Mathf.Lerp(0f, musicVolume, t / fadeDuration);
             yield return null;

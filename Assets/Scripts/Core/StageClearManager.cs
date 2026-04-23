@@ -53,7 +53,7 @@ public class StageClearManager : MonoBehaviour
 
     void Start()
     {
-        _stageStartTime = Time.time;
+        _stageStartTime = Time.realtimeSinceStartup;
 
         // Oculta el panel al inicio
         if (resultPanel != null) resultPanel.SetActive(false);
@@ -127,7 +127,7 @@ public class StageClearManager : MonoBehaviour
         float t = 0f;
         while (t < fadeDuration)
         {
-            t += Time.deltaTime;
+            t += Time.unscaledDeltaTime;
             float alpha = Mathf.Clamp01(t / fadeDuration);
             fadeImage.color = new Color(0, 0, 0, alpha);
             yield return null;
@@ -141,7 +141,7 @@ public class StageClearManager : MonoBehaviour
         int lives      = GameManager.Instance   != null ? GameManager.Instance.CurrentLives  : 0;
         int livesBonus = lives * bonusPerLife;
 
-        float elapsed   = Time.time - _stageStartTime;
+        float elapsed   = Time.realtimeSinceStartup - _stageStartTime;
         float timeRatio = Mathf.Clamp01(1f - (elapsed / maxBonusTime));
         int   timeBonus = Mathf.RoundToInt(maxTimeBonus * timeRatio);
         int   total     = baseScore + livesBonus + timeBonus;
@@ -155,11 +155,17 @@ public class StageClearManager : MonoBehaviour
 
         yield return new WaitForSeconds(0.6f);
 
+        // Inicializa todos los valores a cero antes de animar
+        if (txtScoreValue      != null) txtScoreValue.text      = "00000000";
+        if (txtLivesBonusValue != null) txtLivesBonusValue.text = "00000000";
+        if (txtTimeBonusValue  != null) txtTimeBonusValue.text  = "00000000";
+        if (txtTotalValue      != null) txtTotalValue.text      = "00000000";
+
         // Muestra etiquetas
-        if (txtScoreLabel     != null) txtScoreLabel.text     = "SCORE";
-        if (txtLivesBonus     != null) txtLivesBonus.text     = "LIVES BONUS  ×" + lives;
-        if (txtTimeBonus      != null) txtTimeBonus.text      = "TIME BONUS";
-        if (txtTotalLabel     != null) txtTotalLabel.text     = "TOTAL";
+        if (txtScoreLabel  != null) txtScoreLabel.text  = "SCORE";
+        if (txtLivesBonus  != null) txtLivesBonus.text  = "LIVES BONUS  x" + lives;
+        if (txtTimeBonus   != null) txtTimeBonus.text   = "TIME BONUS";
+        if (txtTotalLabel  != null) txtTotalLabel.text  = "TOTAL";
 
         yield return new WaitForSeconds(0.3f);
 
@@ -183,7 +189,7 @@ public class StageClearManager : MonoBehaviour
         ScoreManager.Instance?.SaveHiScore();
 
         // Sonido de victoria
-        AudioManager.Instance?.PlayGameOverMusic();
+        AudioManager.Instance?.PlayVictoryMusic();
     }
 
     IEnumerator CountUp(TextMeshProUGUI label, int from, int to, float duration)
@@ -193,7 +199,7 @@ public class StageClearManager : MonoBehaviour
         float t = 0f;
         while (t < duration)
         {
-            t += Time.deltaTime;
+            t += Time.unscaledDeltaTime;
             int current = Mathf.RoundToInt(Mathf.Lerp(from, to, t / duration));
             label.text = current.ToString("D8");
             yield return null;

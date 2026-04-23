@@ -14,7 +14,7 @@ public class Bullet : MonoBehaviour
     {
         _direction   = direction.normalized;
         _timer       = 0f;
-        transform.up = _direction;
+        transform.right = _direction;
     }
 
     void Update()
@@ -30,7 +30,6 @@ public class Bullet : MonoBehaviour
         {
             other.GetComponent<EnemyHealth>()?.TakeDamage(damage);
             ScoreManager.Instance?.AddScoreSmallEnemy();
-            AudioManager.Instance?.PlaySFX("enemy_hit");
             gameObject.SetActive(false);
         }
         if (other.CompareTag("Player") || other.CompareTag("PlayerBullet")) return;

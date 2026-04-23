@@ -63,7 +63,6 @@ public class HomingMissile : MonoBehaviour
         {
             other.GetComponent<EnemyHealth>()?.TakeDamage(damage);
             ScoreManager.Instance?.AddScoreSmallEnemy();
-            AudioManager.Instance?.PlaySFX("enemy_hit");
             gameObject.SetActive(false);
         }
         if (other.CompareTag("Player") || other.CompareTag("PlayerBullet")) return;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class WeaponSystem : MonoBehaviour
@@ -32,6 +33,7 @@ public class WeaponSystem : MonoBehaviour
     bool         _laserActive;
     LineRenderer _laserLine;
     Transform    _shootPoint;
+    float        _laserDamageAccum;
 
     void Awake()
     {
@@ -39,15 +41,20 @@ public class WeaponSystem : MonoBehaviour
         _laserLine.positionCount = 2;
         _laserLine.startWidth    = 0.08f;
         _laserLine.endWidth      = 0.04f;
-        _laserLine.material      = new Material(Shader.Find("Sprites/Default"));
+        Shader laserShader       = Shader.Find("Universal Render Pipeline/Particles/Unlit")
+                                ?? Shader.Find("Sprites/Default");
+        _laserLine.material      = new Material(laserShader);
+        _laserLine.material.SetFloat("_Surface", 1f); // Transparent
         _laserLine.startColor    = laserColor;
         _laserLine.endColor      = new Color(laserColor.r, laserColor.g, laserColor.b, 0f);
+        _laserLine.useWorldSpace = true;
         _laserLine.enabled       = false;
     }
 
     public void Shoot(Transform shootPoint)
     {
         _shootPoint = shootPoint;
+        bool laserWasActive = _laserActive;
         if (currentWeapon != WeaponType.Laser) DeactivateLaser();
         _fireCooldown -= Time.deltaTime;
         if (_fireCooldown > 0f) return;
@@ -60,8 +67,14 @@ public class WeaponSystem : MonoBehaviour
             case WeaponType.Homing: ShootHoming(); break;
         }
 
-        string sfxName = "shoot_" + currentWeapon.ToString().ToLower();
-        AudioManager.Instance?.PlaySFX(sfxName);
+        if (currentWeapon == WeaponType.Laser)
+        {
+            if (!laserWasActive) AudioManager.Instance?.PlaySFX("shoot_laser");
+        }
+        else
+        {
+            AudioManager.Instance?.PlaySFX("shoot_" + currentWeapon.ToString().ToLower());
+        }
     }
 
     public void StopShooting() => DeactivateLaser();
@@ -128,12 +141,40 @@ public class WeaponSystem : MonoBehaviour
         _laserLine.startWidth = 0.08f + weaponLevel * 0.06f;
         _laserLine.endWidth   = 0.04f + weaponLevel * 0.03f;
 
-        Vector2      origin    = _shootPoint.position;
-        RaycastHit2D hit       = Physics2D.Raycast(origin, Vector2.right, laserMaxLength, LayerMask.GetMask("Enemy"));
-        Vector2      endPoint  = hit.collider != null ? hit.point : origin + Vector2.right * laserMaxLength;
+        Vector2 origin   = _shootPoint.position;
+        Vector2 endPoint = origin + Vector2.right * laserMaxLength;
 
-        if (hit.collider != null)
-            hit.collider.GetComponent<EnemyHealth>()?.TakeDamage(Mathf.RoundToInt(laserDamagePerSecond * Time.deltaTime));
+        // useTriggers=true porque los colliders de enemigos son triggers
+        var filter  = new ContactFilter2D { useTriggers = true };
+        var hits    = new List<RaycastHit2D>();
+        Physics2D.Raycast(origin, Vector2.right, filter, hits, laserMaxLength);
+
+        RaycastHit2D bestHit  = default;
+        float        bestDist = float.MaxValue;
+        foreach (var h in hits)
+        {
+            if (h.collider.CompareTag("Enemy") && h.distance < bestDist)
+            {
+                bestDist = h.distance;
+                bestHit  = h;
+            }
+        }
+
+        if (bestHit.collider != null)
+        {
+            endPoint = bestHit.point;
+            _laserDamageAccum += laserDamagePerSecond * Time.deltaTime;
+            int dmg = Mathf.FloorToInt(_laserDamageAccum);
+            if (dmg > 0)
+            {
+                bestHit.collider.GetComponent<EnemyHealth>()?.TakeDamage(dmg);
+                _laserDamageAccum -= dmg;
+            }
+        }
+        else
+        {
+            _laserDamageAccum = 0f;
+        }
 
         _laserLine.SetPosition(0, origin);
         _laserLine.SetPosition(1, endPoint);
@@ -142,7 +183,8 @@ public class WeaponSystem : MonoBehaviour
     void DeactivateLaser()
     {
         if (_laserLine != null) _laserLine.enabled = false;
-        _laserActive = false;
+        _laserActive      = false;
+        _laserDamageAccum = 0f;
     }
 
     void ShootHoming()

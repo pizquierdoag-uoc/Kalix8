@@ -4,37 +4,67 @@ using TMPro;
 
 public class OptionsController : MonoBehaviour
 {
-    [Header("Iconos de vidas (5 sprites de nave)")]
-    [Tooltip("Arrastra aquí los 5 Image con el sprite de la nave del HUD.")]
-    public Image[] lifeIcons;
+    [Header("Música")]
+    public TextMeshProUGUI txtMusicVolume;
 
+    [Header("Sonido")]
+    public TextMeshProUGUI txtSFXVolume;
+
+    [Header("Iconos de vidas (5 sprites)")]
+    public Image[] lifeIcons;
     public Color iconActiveColor   = Color.white;
     public Color iconInactiveColor = new Color(0.25f, 0.25f, 0.3f, 0.35f);
 
-    [Header("Dificultad")]
-    public TextMeshProUGUI txtDifficulty;
-    public TextMeshProUGUI txtDescription; // Opcional
 
-    public Color colorEasy   = new Color(0.40f, 1.00f, 0.45f); // verde
-    public Color colorNormal = new Color(0.95f, 0.90f, 0.35f); // amarillo
-    public Color colorHard   = new Color(1.00f, 0.32f, 0.22f); // rojo
-
-    [Header("Audio")]
-    public AudioClip buttonSound;
-
-    int                      _lives;
-    GameSettings.Difficulty  _diff;
+    int _lives;
+    int _musicPct;
+    int _sfxPct;
 
     void OnEnable()
     {
-        _lives = GameSettings.StartingLives;
-        _diff  = GameSettings.CurrentDifficulty;
+        _lives    = GameSettings.StartingLives;
+        float mv  = AudioManager.Instance != null ? AudioManager.Instance.musicVolume : 0.6f;
+        float sv  = AudioManager.Instance != null ? AudioManager.Instance.sfxVolume   : 0.8f;
+        _musicPct = Mathf.RoundToInt(mv * 10f) * 10;
+        _sfxPct   = Mathf.RoundToInt(sv * 10f) * 10;
+        RefreshUI();
+    }
+
+    public void OnMusicDown()
+    {
+        _musicPct = Mathf.Max(0, _musicPct - 10);
+        AudioManager.Instance?.SetMusicVolume(_musicPct / 100f);
+        PlaySound();
+        RefreshUI();
+    }
+
+    public void OnMusicUp()
+    {
+        _musicPct = Mathf.Min(100, _musicPct + 10);
+        AudioManager.Instance?.SetMusicVolume(_musicPct / 100f);
+        PlaySound();
+        RefreshUI();
+    }
+
+    public void OnSFXDown()
+    {
+        _sfxPct = Mathf.Max(0, _sfxPct - 10);
+        AudioManager.Instance?.SetSFXVolume(_sfxPct / 100f);
+        PlaySound();
+        RefreshUI();
+    }
+
+    public void OnSFXUp()
+    {
+        _sfxPct = Mathf.Min(100, _sfxPct + 10);
+        AudioManager.Instance?.SetSFXVolume(_sfxPct / 100f);
+        PlaySound();
         RefreshUI();
     }
 
     public void OnLivesLeft()
     {
-        _lives = _lives > 3 ? _lives - 1 : 3;
+        _lives = _lives > 2 ? _lives - 1 : 2;
         GameSettings.SetLives(_lives);
         PlaySound();
         RefreshUI();
@@ -48,78 +78,35 @@ public class OptionsController : MonoBehaviour
         RefreshUI();
     }
 
-    public void OnDiffLeft()
-    {
-        int d = (int)_diff - 1;
-        if (d < 0) d = 2;
-        _diff = (GameSettings.Difficulty)d;
-        GameSettings.SetDifficulty(_diff);
-        PlaySound();
-        RefreshUI();
-    }
-
-    public void OnDiffRight()
-    {
-        int d = (int)_diff + 1;
-        if (d > 2) d = 0;
-        _diff = (GameSettings.Difficulty)d;
-        GameSettings.SetDifficulty(_diff);
-        PlaySound();
-        RefreshUI();
-    }
-
-    public void Close()
-    {
-        gameObject.SetActive(false);
-    }
+    public void Close() => gameObject.SetActive(false);
 
     void RefreshUI()
     {
-        // Iconos de vida: activos los primeros _lives, el resto apagados
+        if (txtMusicVolume != null) txtMusicVolume.text = _musicPct + "%";
+        if (txtSFXVolume   != null) txtSFXVolume.text   = _sfxPct   + "%";
+
         for (int i = 0; i < lifeIcons.Length; i++)
         {
             if (lifeIcons[i] == null) continue;
-            bool active = (i < _lives);
+            bool active = i < _lives;
             lifeIcons[i].color = active ? iconActiveColor : iconInactiveColor;
-
-            // Pequeño punch de escala en el icono que cambia
             if (active && i == _lives - 1)
                 StartCoroutine(PunchScale(lifeIcons[i].transform));
         }
-
-        // Texto de dificultad
-        if (txtDifficulty != null)
-        {
-            txtDifficulty.text = GameSettings.DifficultyName;
-            switch (_diff)
-            {
-                case GameSettings.Difficulty.Easy:   txtDifficulty.color = colorEasy;   break;
-                case GameSettings.Difficulty.Hard:   txtDifficulty.color = colorHard;   break;
-                default:                             txtDifficulty.color = colorNormal;  break;
-            }
-        }
-
-        // Descripción corta (opcional)
-        if (txtDescription != null)
-            txtDescription.text = GameSettings.DifficultyDescription;
     }
 
     System.Collections.IEnumerator PunchScale(Transform t)
     {
-        float elapsed = 0f;
-        while (elapsed < 0.18f)
+        float e = 0f;
+        while (e < 0.18f)
         {
-            float s = 1f + Mathf.Sin(elapsed / 0.18f * Mathf.PI) * 0.28f;
+            float s = 1f + Mathf.Sin(e / 0.18f * Mathf.PI) * 0.28f;
             t.localScale = Vector3.one * s;
-            elapsed += Time.unscaledDeltaTime;
+            e += Time.unscaledDeltaTime;
             yield return null;
         }
         t.localScale = Vector3.one;
     }
 
-    void PlaySound()
-    {
-        if (buttonSound != null && Camera.main != null)
-            AudioSource.PlayClipAtPoint(buttonSound, Camera.main.transform.position);
-    }
+    void PlaySound() => AudioManager.Instance?.PlaySFX("menu_select");
 }

@@ -148,7 +148,8 @@ public class PlayerController : MonoBehaviour
         if (playerExplosionChild != null)
         {
             playerExplosionChild.SetActive(true);
-            playerExplosionChild.GetComponent<FrameAnimator>()?.Play();
+            var fa = playerExplosionChild.GetComponent<FrameAnimator>();
+            if (fa != null) { fa.loop = false; fa.Play(); }
         }
 
         GameManager.Instance?.PlayerDied();
@@ -185,7 +186,6 @@ public class PlayerController : MonoBehaviour
         if (other.CompareTag("Enemy"))       { TakeDamage(1); }
         if (other.CompareTag("PowerUp"))
         {
-            AudioManager.Instance?.PlaySFX("powerup");
             other.gameObject.SetActive(false);
         }
     }
