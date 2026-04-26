@@ -26,6 +26,9 @@ public class WeaponSystem : MonoBehaviour
     public float laserMaxLength       = 20f;
     public Color laserColor           = new Color(0.2f, 0.9f, 1f, 1f);
 
+    [Header("Tamaño de proyectiles")]
+    public float bulletScale = 1.5f;
+
     [Header("Nivel de potencia (0-2)")]
     [Range(0,2)] public int weaponLevel = 0;
 
@@ -138,8 +141,8 @@ public class WeaponSystem : MonoBehaviour
         _fireCooldown      = 0f;
         _laserActive       = true;
         _laserLine.enabled = true;
-        _laserLine.startWidth = 0.08f + weaponLevel * 0.06f;
-        _laserLine.endWidth   = 0.04f + weaponLevel * 0.03f;
+        _laserLine.startWidth = (0.08f + weaponLevel * 0.06f) * bulletScale;
+        _laserLine.endWidth   = (0.04f + weaponLevel * 0.03f) * bulletScale;
 
         Vector2 origin   = _shootPoint.position;
         Vector2 endPoint = origin + Vector2.right * laserMaxLength;
@@ -201,8 +204,9 @@ public class WeaponSystem : MonoBehaviour
     void SpawnBullet(GameObject prefab, Vector3 position, Vector2 direction)
     {
         if (prefab == null) { Debug.LogWarning("[WeaponSystem] Prefab no asignado."); return; }
-        GameObject    obj = Instantiate(prefab, position, Quaternion.identity);
-        Bullet        b   = obj.GetComponent<Bullet>();
+        GameObject obj = Instantiate(prefab, position, Quaternion.identity);
+        obj.transform.localScale *= bulletScale;
+        Bullet b = obj.GetComponent<Bullet>();
         if (b != null) b.Launch(direction);
     }
 

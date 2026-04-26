@@ -226,7 +226,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: d4ded1ba73f646644ab1aa12c47af75b, type: 3}
+  m_Sprite: {fileID: -5477598750247335150, guid: d4ded1ba73f646644ab1aa12c47af75b, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -913,7 +913,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: d4ded1ba73f646644ab1aa12c47af75b, type: 3}
+  m_Sprite: {fileID: -5477598750247335150, guid: d4ded1ba73f646644ab1aa12c47af75b, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1701,7 +1701,7 @@ SpriteRenderer:
   m_Size: {x: 0.95, y: 0.53}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
+  m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
 --- !u!4 &606346066
 Transform:
@@ -1733,14 +1733,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerEngineAnim
   idleFrames:
-  - {fileID: 21300000, guid: db24e1d97e554104984907ca30fc3942, type: 3}
-  - {fileID: 21300000, guid: 8af0d7419584e8740a8979baa0fcb541, type: 3}
+  - {fileID: 1255820754997309256, guid: 0035c45cc85cf0a4f9acd3b041e9c010, type: 3}
+  - {fileID: -402707431601729781, guid: 0035c45cc85cf0a4f9acd3b041e9c010, type: 3}
+  - {fileID: -1563890012851108235, guid: 0035c45cc85cf0a4f9acd3b041e9c010, type: 3}
+  - {fileID: 273614043157952914, guid: 0035c45cc85cf0a4f9acd3b041e9c010, type: 3}
   thrustFrames:
-  - {fileID: 21300000, guid: 484ddcba5b8654440b89ac94a18b7026, type: 3}
-  - {fileID: 21300000, guid: 5e33191d9190af840bdb684f01cae843, type: 3}
-  - {fileID: 21300000, guid: cc56759e68f177d4b994081ede1c23ff, type: 3}
-  - {fileID: 21300000, guid: 196eeaf56d3bd8445b235349dabce369, type: 3}
-  - {fileID: 21300000, guid: 6d56ad19aef3a174b9d71dd17b9d9254, type: 3}
+  - {fileID: -4863109717135532145, guid: cafbdd94644bb844ab38891688406f4b, type: 3}
+  - {fileID: -1966469663106550566, guid: cafbdd94644bb844ab38891688406f4b, type: 3}
+  - {fileID: 6941449858043805787, guid: cafbdd94644bb844ab38891688406f4b, type: 3}
+  - {fileID: -2930482836778210379, guid: cafbdd94644bb844ab38891688406f4b, type: 3}
   thrustThreshold: 0.15
 --- !u!114 &606346068
 MonoBehaviour:
@@ -1755,8 +1756,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FrameAnimator
   frames:
-  - {fileID: 21300000, guid: db24e1d97e554104984907ca30fc3942, type: 3}
-  - {fileID: 21300000, guid: 8af0d7419584e8740a8979baa0fcb541, type: 3}
+  - {fileID: 1255820754997309256, guid: 0035c45cc85cf0a4f9acd3b041e9c010, type: 3}
+  - {fileID: -402707431601729781, guid: 0035c45cc85cf0a4f9acd3b041e9c010, type: 3}
+  - {fileID: -1563890012851108235, guid: 0035c45cc85cf0a4f9acd3b041e9c010, type: 3}
+  - {fileID: 273614043157952914, guid: 0035c45cc85cf0a4f9acd3b041e9c010, type: 3}
   fps: 10
   loop: 1
 --- !u!1 &645545733
@@ -2298,7 +2301,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: d4ded1ba73f646644ab1aa12c47af75b, type: 3}
+  m_Sprite: {fileID: -5477598750247335150, guid: d4ded1ba73f646644ab1aa12c47af75b, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2601,7 +2604,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: d4ded1ba73f646644ab1aa12c47af75b, type: 3}
+  m_Sprite: {fileID: -5477598750247335150, guid: d4ded1ba73f646644ab1aa12c47af75b, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -5158,7 +5161,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: d4ded1ba73f646644ab1aa12c47af75b, type: 3}
+  m_Sprite: {fileID: -5477598750247335150, guid: d4ded1ba73f646644ab1aa12c47af75b, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1

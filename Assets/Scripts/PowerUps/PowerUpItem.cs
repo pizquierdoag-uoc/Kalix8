@@ -26,6 +26,9 @@ public class PowerUpItem : MonoBehaviour
     public float bobSpeed    = 2f;
     public float lifetime    = 12f;
 
+    [Header("Tamaño")]
+    public float spriteScale = 1.5f;
+
     [Header("Color por tipo (se asigna automáticamente)")]
     public bool autoColor = true;
 
@@ -44,6 +47,7 @@ public class PowerUpItem : MonoBehaviour
         _startY    = transform.position.y;
         _timer     = 0f;
         _bobTimer  = 0f;
+        transform.localScale = Vector3.one * spriteScale;
 
         if (autoColor && _sr != null)
             _sr.color = GetColorForType(type);
@@ -100,7 +104,7 @@ public class PowerUpItem : MonoBehaviour
                 PowerUpManager.Instance?.ActivateSpeedBoost(player);
                 break;
             case PowerUpType.Bomb:
-                PowerUpManager.Instance?.ActivateBomb();
+                PowerUpManager.Instance?.AddBomb();
                 break;
             case PowerUpType.OrbitDrones:
                 PowerUpManager.Instance?.ActivateOrbitDrones(player);

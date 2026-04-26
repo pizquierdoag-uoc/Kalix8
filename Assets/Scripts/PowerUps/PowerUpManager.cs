@@ -10,6 +10,7 @@ public class PowerUpManager : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        _bombCount = startingBombs;
     }
 
     [Header("Escudo")]
@@ -21,6 +22,7 @@ public class PowerUpManager : MonoBehaviour
     public float speedBoostMultiplier  = 1.6f;
 
     [Header("Bomba")]
+    public int        startingBombs = 2;
     public GameObject bombExplosionEffect; // efecto visual opcional
 
     [Header("Drones orbitales")]
@@ -34,6 +36,23 @@ public class PowerUpManager : MonoBehaviour
     List<GameObject> _activeDrones = new List<GameObject>();
     Coroutine        _shieldRoutine;
     Coroutine        _speedRoutine;
+    int              _bombCount;
+
+    public int BombCount => _bombCount;
+
+    public void AddBomb()
+    {
+        _bombCount++;
+        HUDController.Instance?.UpdateBombs(_bombCount);
+    }
+
+    public void UseBomb()
+    {
+        if (_bombCount <= 0) return;
+        _bombCount--;
+        HUDController.Instance?.UpdateBombs(_bombCount);
+        ActivateBomb();
+    }
 
     public void ActivateShield(PlayerController player)
     {
@@ -43,13 +62,7 @@ public class PowerUpManager : MonoBehaviour
 
     IEnumerator ShieldRoutine(PlayerController player)
     {
-        // Activa invulnerabilidad directamente
-        var invField = typeof(PlayerController)
-            .GetField("_isInvulnerable",
-                System.Reflection.BindingFlags.NonPublic |
-                System.Reflection.BindingFlags.Instance);
-
-        if (invField != null) invField.SetValue(player, true);
+        player.SetInvulnerable(true);
 
         if (shieldEffect != null)
         {
@@ -60,7 +73,7 @@ public class PowerUpManager : MonoBehaviour
 
         yield return new WaitForSeconds(shieldDuration);
 
-        if (invField != null) invField.SetValue(player, false);
+        player.SetInvulnerable(false);
         if (shieldEffect != null) shieldEffect.SetActive(false);
     }
 

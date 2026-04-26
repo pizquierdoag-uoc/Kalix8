@@ -34,6 +34,10 @@ public class HUDController : MonoBehaviour
     public Color colorLaser  = new Color(1f,   0.65f, 0f);
     public Color colorHoming = new Color(1f,   0.35f, 0.25f);
 
+    [Header("Bombas")]
+    public Image           bombIcon;
+    public TextMeshProUGUI txtBombCount;
+
     [Header("Panel Game Over")]
     public GameObject      gameOverPanel;
     public TextMeshProUGUI txtFinalScore;
@@ -49,15 +53,22 @@ public class HUDController : MonoBehaviour
     public bool showTimer = true;
     public TextMeshProUGUI txtTimer;
 
+    [Header("FPS")]
+    public TextMeshProUGUI txtFPS;
+
     Coroutine _scorePopRoutine;
     float _phaseTime;
     bool  _timerRunning;
+    float _fpsTimer;
+    int   _fpsFrames;
+    float _fpsDisplay;
 
     void Start()
     {
         UpdateScore(0, 0);
         UpdateHiScore(PlayerPrefs.GetInt("HiScore", 0));
         UpdateLives(GameSettings.StartingLives);
+        UpdateBombs(PowerUpManager.Instance?.BombCount ?? 0);
         UpdateWeapon("NORMAL", 0);
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         ResetTimer();
@@ -66,6 +77,8 @@ public class HUDController : MonoBehaviour
 
     void Update()
     {
+        UpdateFPS();
+
         if (!_timerRunning || !showTimer) return;
         if (GameManager.Instance != null && !GameManager.Instance.IsPlaying) return;
         _phaseTime += Time.deltaTime;
@@ -74,6 +87,20 @@ public class HUDController : MonoBehaviour
             int mins = (int)_phaseTime / 60;
             int secs = (int)_phaseTime % 60;
             txtTimer.text = string.Format("{0:00}:{1:00}", mins, secs);
+        }
+    }
+
+    void UpdateFPS()
+    {
+        _fpsFrames++;
+        _fpsTimer += Time.unscaledDeltaTime;
+        if (_fpsTimer >= 0.5f)
+        {
+            _fpsDisplay = _fpsFrames / _fpsTimer;
+            _fpsFrames  = 0;
+            _fpsTimer   = 0f;
+            if (txtFPS != null)
+                txtFPS.text = $"{_fpsDisplay:F0} FPS";
         }
     }
 
@@ -118,6 +145,12 @@ public class HUDController : MonoBehaviour
         int lastIdx = currentLives - 1;
         if (lastIdx >= 0 && lastIdx < lifeIcons.Length && lifeIcons[lastIdx] != null)
             StartCoroutine(ScalePunch(lifeIcons[lastIdx].transform));
+    }
+
+    public void UpdateBombs(int count)
+    {
+        if (txtBombCount != null) txtBombCount.text = "×" + count;
+        if (bombIcon     != null) bombIcon.color = count > 0 ? Color.white : new Color(1f, 1f, 1f, 0.3f);
     }
 
     public void UpdateWeapon(string weaponName, int level)

@@ -127,6 +127,9 @@ public class PlayerController : MonoBehaviour
         if (fire1Held)     _weaponSystem.Shoot(shootPoint);
         if (fire1Released) _weaponSystem.StopShooting();
         if (fire2Pressed)  _weaponSystem.CycleWeapon();
+
+        bool bombPressed = kb != null && kb.spaceKey.wasPressedThisFrame;
+        if (bombPressed)   PowerUpManager.Instance?.UseBomb();
     }
 
     public void TakeDamage(int amount = 1)
@@ -189,6 +192,8 @@ public class PlayerController : MonoBehaviour
             other.gameObject.SetActive(false);
         }
     }
+
+    public void SetInvulnerable(bool value) => _isInvulnerable = value;
 
     public void UpgradeWeapon() => _weaponSystem?.Upgrade();
     public void AddHealth(int amount) => _currentHealth = Mathf.Min(_currentHealth + amount, maxHealth);

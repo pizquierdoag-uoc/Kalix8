@@ -7,6 +7,11 @@ public class EnemyHealth : MonoBehaviour
     public int maxHealth = 3;
     public int scoreValue = 100;
 
+    [Header("Drop de power-up")]
+    [Range(0f, 1f)]
+    public float dropChance = 0.18f;
+    public GameObject[] dropPrefabs;
+
     [Header("Efectos (opcional)")]
     public ParticleSystem hitEffect;
     public ParticleSystem deathEffect;
@@ -53,6 +58,8 @@ public class EnemyHealth : MonoBehaviour
 
         ExplosionEffect.Spawn(explosionPrefab, transform.position);
 
+        TryDropPowerUp();
+
         gameObject.SetActive(false);
     }
 
@@ -62,6 +69,16 @@ public class EnemyHealth : MonoBehaviour
         _sr.color = Color.red;
         yield return new WaitForSeconds(0.08f);
         _sr.color = Color.white;
+    }
+
+    void TryDropPowerUp()
+    {
+        if (dropPrefabs == null || dropPrefabs.Length == 0) return;
+        if (Random.value > dropChance) return;
+
+        GameObject prefab = dropPrefabs[Random.Range(0, dropPrefabs.Length)];
+        if (prefab != null)
+            Instantiate(prefab, transform.position, Quaternion.identity);
     }
 
     public int CurrentHealth => _currentHealth;

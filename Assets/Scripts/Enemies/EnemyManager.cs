@@ -74,33 +74,32 @@ public class EnemyManager : MonoBehaviour
 
     IEnumerator Phase1_NormalEnemies()
     {
-        // Bloque A — Solo Lineales, ritmo pausado (~24s)
-        // 8 enemigos × 3s = 24s
-        yield return SpawnRepeating(prefabLinear, count: 8, interval: S(3f));
+        // Bloque A — Solo Lineales
+        yield return SpawnRepeating(prefabLinear, count: 8, interval: S(2.5f));
 
-        // Bloque B — Lineales + Sinusoidales alternados (~30s)
-        yield return SpawnAlternating(prefabLinear, prefabSine, count: 10, interval: S(3f));
+        // Bloque B — Lineales + Sinusoidales alternados
+        yield return SpawnAlternating(prefabLinear, prefabSine, count: 10, interval: S(2.5f));
 
-        // Bloque C — Mix completo: Linear / Sine / Shooter (~36s)
-        yield return SpawnMixedNormal(rounds: 7, interval: S(5f), includeShooter: true);
+        // Bloque C — Mix completo: Linear / Sine / Shooter
+        yield return SpawnMixedNormal(rounds: 8, interval: S(4.5f), includeShooter: true);
     }
 
     IEnumerator Phase3_NormalEnemiesAggressive()
     {
-        // Bloque A — Grupo rápido de Lineales (~4.5s)
-        yield return SpawnGroup(prefabLinear, count: 5, intraDelay: 0.5f);
-        yield return new WaitForSeconds(S(2f));
+        // Bloque A — Grupo rápido de Lineales
+        yield return SpawnGroup(prefabLinear, count: 6, intraDelay: 0.5f);
+        yield return new WaitForSeconds(S(1.5f));
 
-        // Bloque B — Grupo de Sinusoidales (~4.4s)
-        yield return SpawnGroup(prefabSine, count: 4, intraDelay: 0.6f);
-        yield return new WaitForSeconds(S(2f));
+        // Bloque B — Grupo de Sinusoidales
+        yield return SpawnGroup(prefabSine, count: 5, intraDelay: 0.6f);
+        yield return new WaitForSeconds(S(1.5f));
 
-        // Bloque C — Grupo de Shooters (~4.2s)
+        // Bloque C — Grupo de Shooters
         yield return SpawnGroup(prefabShooter, count: 4, intraDelay: 0.8f);
-        yield return new WaitForSeconds(S(2f));
+        yield return new WaitForSeconds(S(1.5f));
 
-        // Bloque D — Mix agresivo, intervalos reducidos (~45s)
-        yield return SpawnMixedNormal(rounds: 9, interval: S(4.5f), includeShooter: true);
+        // Bloque D — Mix agresivo, intervalos reducidos
+        yield return SpawnMixedNormal(rounds: 10, interval: S(4f), includeShooter: true);
     }
 
     //   total       — cuántos kamikazes en total
