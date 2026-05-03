@@ -32,14 +32,24 @@ Archivo Kalix8.Pre-Alpha.v0.0.1.zip
 2. Descomprime la carpeta.
 3. Ejecuta el ejecutable Kalix8.exe
 
+# Versión Alpha para Windows.
+Archivo Kalix8.Alpha.v0.0.5.zip
+1. Descarga el archivo.
+2. Descomprime la carpeta.
+3. Ejecuta el ejecutable Kalix8.exe
+
+
 # Controles
-|------------|----------------------------------|
-| Acción ----| Tecla ---------------------------|
-|------------|----------------------------------|
-| Mover nave | `WASD` o flechas                 |
-| Disparar   | `CTRL` o `Click izquierdo`    |
-| Pausa      | `Esc`                            |
-|------------|----------------------------------|
+|-------------|----------------------------------|
+| Acción -----| Tecla ---------------------------|
+|-------------|----------------------------------|
+| Mover nave  | Flechas                          |
+| Disparar    | `CTRL` o `Click izquierdo`       |
+| Pausa       | `Esc` Muestra Power-ups          |
+| F1          | Testeo: Muestra fps y Time       |
+| F2          | Testeo: Salta al Boss            |
+| F3          | Testeo: Dropea Power-ups         |
+|-------------|----------------------------------|
 
 # Contribuciones
 
@@ -50,4 +60,5 @@ Distribuido bajo la licencia MIT. Consulta el archivo `LICENSE` para más inform
 Porfirio Izquierdo
 - GitHub: [pizquierdoag-uoc](https://github.com/pizquierdoag-uoc)
 - Video:  [pizquierdoag-uoc](https://www.youtube.com/shorts/Er4Qh1qpa9U)
+- Video PEC3: https://github.com/pizquierdoag-uoc/Kalix8
 
