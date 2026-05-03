@@ -45,6 +45,10 @@ public class BossController : MonoBehaviour
         _fireTimer     = 0f;
         _bobTime       = 0f;
 
+        // Conecta con la barra de vida del HUD (la crea si no existe)
+        if (healthBar == null && HUDController.Instance != null)
+            healthBar = HUDController.Instance.GetOrCreateBossHealthBar();
+
         if (healthBar != null)
         {
             healthBar.maxValue = maxHealth;
@@ -171,7 +175,11 @@ public class BossController : MonoBehaviour
     void Die()
     {
         _isDead = true;
+
+        // Para la música inmediatamente y reproduce la explosión
+        AudioManager.Instance?.StopMusic();
         AudioManager.Instance?.PlaySFX("boss_death");
+
         ScoreManager.Instance?.AddScore(scoreValue);
 
         if (healthBar != null)

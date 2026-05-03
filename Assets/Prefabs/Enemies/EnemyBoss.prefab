@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -85,12 +85,12 @@ SpriteRenderer:
   m_SortingLayer: 2
   m_SortingOrder: 9
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -2428330863197254518, guid: b7a1bc9b620ffa24f83cbce7b4866820, type: 3}
+  m_Sprite: {fileID: -1383768527588444868, guid: c7c8431c9419298469fbdc2ceec2c939, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 2.5, y: 1.75}
+  m_Size: {x: 1.04, y: 1.68}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -130,7 +130,7 @@ CapsuleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Size: {x: 9.14, y: 7.3}
+  m_Size: {x: 0.7, y: 1.2}
   m_Direction: 0
 --- !u!114 &3746152065432418011
 MonoBehaviour:

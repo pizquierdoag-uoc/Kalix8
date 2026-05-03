@@ -28,9 +28,17 @@ public class Bullet : MonoBehaviour
     {
         if (other.CompareTag("Enemy"))
         {
-            other.GetComponent<EnemyHealth>()?.TakeDamage(damage);
-            ScoreManager.Instance?.AddScoreSmallEnemy();
+            // EnemyBase gestiona daño+knockback+chispa vía tag "PlayerBullet".
+            // Solo aplicamos daño aquí si el enemigo no tiene EnemyBase (ej: boss).
+            if (other.GetComponent<EnemyBase>() == null)
+                other.GetComponent<EnemyHealth>()?.TakeDamage(damage);
             gameObject.SetActive(false);
+            return;
+        }
+        if (other.CompareTag("Wall") || other.CompareTag("EnemyBullet"))
+        {
+            gameObject.SetActive(false);
+            return;
         }
         if (other.CompareTag("Player") || other.CompareTag("PlayerBullet")) return;
     }

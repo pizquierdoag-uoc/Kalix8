@@ -1,26 +1,38 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[RequireComponent(typeof(FrameAnimator))]
 public class PlayerEngineAnim : MonoBehaviour
 {
     [Header("Frames de animación")]
     public Sprite[] idleFrames;
     public Sprite[] thrustFrames;
 
-    [Header("Umbral de velocidad para activar Thrust")]
-    [Tooltip("Magnitud mínima del input para considerar que hay movimiento")]
+    [Header("Velocidad (fps) y umbral de input")]
+    public float fps             = 14f;
     public float thrustThreshold = 0.15f;
 
     FrameAnimator _anim;
     bool          _thrusting;
 
-    void Awake()
+    void Start()
     {
         _anim = GetComponent<FrameAnimator>();
+        if (_anim == null)
+        {
+            Debug.LogWarning("PlayerEngineAnim: no FrameAnimator found on this GameObject.");
+            return;
+        }
+        _anim.fps = fps;
+        _anim.frames = (idleFrames != null && idleFrames.Length > 0) ? idleFrames : thrustFrames;
     }
 
     void Update()
+    {
+        if (_anim == null) return;
+        HandleInput();
+    }
+
+    void HandleInput()
     {
         var kb = Keyboard.current;
         float h = 0f, v = 0f;
@@ -31,22 +43,12 @@ public class PlayerEngineAnim : MonoBehaviour
             if (kb.downArrowKey.isPressed  || kb.sKey.isPressed) v -= 1f;
             if (kb.upArrowKey.isPressed    || kb.wKey.isPressed) v += 1f;
         }
-        float inputMag = new Vector2(h, v).magnitude;
 
-        bool nowThrusting = inputMag >= thrustThreshold;
+        bool nowThrusting = new Vector2(h, v).magnitude >= thrustThreshold;
         if (nowThrusting == _thrusting) return;
 
-        _thrusting = nowThrusting;
-
-        if (_thrusting && thrustFrames != null && thrustFrames.Length > 0)
-        {
-            _anim.frames = thrustFrames;
-            _anim.Play();
-        }
-        else if (!_thrusting && idleFrames != null && idleFrames.Length > 0)
-        {
-            _anim.frames = idleFrames;
-            _anim.Play();
-        }
+        _thrusting  = nowThrusting;
+        _anim.frames = _thrusting && thrustFrames != null && thrustFrames.Length > 0
+                       ? thrustFrames : idleFrames;
     }
 }

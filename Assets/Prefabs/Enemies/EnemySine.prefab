@@ -131,7 +131,7 @@ CapsuleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Size: {x: 1.0, y: 0.9}
+  m_Size: {x: 1, y: 0.9}
   m_Direction: 0
 --- !u!114 &2770234065821169823
 MonoBehaviour:
@@ -147,9 +147,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
   maxHealth: 2
   scoreValue: 100
+  dropChance: 0.18
+  dropPrefabs: []
   hitEffect: {fileID: 0}
   deathEffect: {fileID: 0}
-  explosionPrefab: {fileID: 0}
+  explosionPrefab: {fileID: 5505029368625499899, guid: 8a4e5fb783d4b3d4fb282ae4bb3044b9, type: 3}
 --- !u!114 &796861543287768211
 MonoBehaviour:
   m_ObjectHideFlags: 0

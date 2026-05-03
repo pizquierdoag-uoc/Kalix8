@@ -22,15 +22,19 @@ public class WeaponSystem : MonoBehaviour
     public float spreadAngle = 18f;
 
     [Header("Láser")]
-    public float laserDamagePerSecond = 5f;
-    public float laserMaxLength       = 20f;
-    public Color laserColor           = new Color(0.2f, 0.9f, 1f, 1f);
+    public float    laserDamagePerSecond = 5f;
+    public float    laserMaxLength       = 20f;
+    public Color    laserColor           = new Color(0.2f, 0.9f, 1f, 1f);
+    [Tooltip("Material para el LineRenderer del láser. Asignar en Inspector para que funcione en build.")]
+    public Material laserMaterial;
 
     [Header("Tamaño de proyectiles")]
     public float bulletScale = 1.5f;
 
-    [Header("Nivel de potencia (0-2)")]
-    [Range(0,2)] public int weaponLevel = 0;
+    // Nivel por arma (0=lv1, 1=lv2, 2=lv3). Orden: Normal, Spread, Laser, Homing
+    readonly int[] _levels = { 0, 0, 0, 0 };
+
+    int WeaponLevel => _levels[(int)currentWeapon];
 
     float        _fireCooldown;
     bool         _laserActive;
@@ -44,14 +48,35 @@ public class WeaponSystem : MonoBehaviour
         _laserLine.positionCount = 2;
         _laserLine.startWidth    = 0.08f;
         _laserLine.endWidth      = 0.04f;
-        Shader laserShader       = Shader.Find("Universal Render Pipeline/Particles/Unlit")
-                                ?? Shader.Find("Sprites/Default");
-        _laserLine.material      = new Material(laserShader);
-        _laserLine.material.SetFloat("_Surface", 1f); // Transparent
+        if (laserMaterial != null)
+        {
+            _laserLine.material = new Material(laserMaterial);
+        }
+        else
+        {
+            Shader laserShader = Shader.Find("Universal Render Pipeline/Particles/Unlit")
+                              ?? Shader.Find("Unlit/Color")
+                              ?? Shader.Find("Sprites/Default");
+            if (laserShader != null)
+            {
+                _laserLine.material = new Material(laserShader);
+                _laserLine.material.SetFloat("_Surface", 1f);
+            }
+            else
+            {
+                _laserLine.material = new Material(Shader.Find("Hidden/InternalErrorShader") ?? Shader.Find("Standard"));
+            }
+        }
         _laserLine.startColor    = laserColor;
         _laserLine.endColor      = new Color(laserColor.r, laserColor.g, laserColor.b, 0f);
         _laserLine.useWorldSpace = true;
-        _laserLine.enabled       = false;
+
+        // Renderizar por encima de los sprites del jugador
+        var sr = GetComponent<SpriteRenderer>();
+        _laserLine.sortingLayerName = sr != null ? sr.sortingLayerName : "Default";
+        _laserLine.sortingOrder     = sr != null ? sr.sortingOrder + 2 : 10;
+
+        _laserLine.enabled = false;
     }
 
     public void Shoot(Transform shootPoint)
@@ -72,7 +97,7 @@ public class WeaponSystem : MonoBehaviour
 
         if (currentWeapon == WeaponType.Laser)
         {
-            if (!laserWasActive) AudioManager.Instance?.PlaySFX("shoot_laser");
+            if (!laserWasActive) AudioManager.Instance?.PlayLaserSFX();
         }
         else
         {
@@ -86,38 +111,50 @@ public class WeaponSystem : MonoBehaviour
     {
         DeactivateLaser();
         currentWeapon = (WeaponType)(((int)currentWeapon + 1) % 4);
-        weaponLevel   = 0;
-        HUDController.Instance?.UpdateWeapon(currentWeapon.ToString().ToUpper(), weaponLevel);
+        NotifyHUD();
     }
 
-    public void Upgrade()
+    // Sube el nivel del arma indicada y cambia a ella (llamado por powerups de arma)
+    public void UpgradeWeapon(WeaponType type)
     {
-        weaponLevel = Mathf.Min(weaponLevel + 1, 2);
-        HUDController.Instance?.UpdateWeapon(currentWeapon.ToString().ToUpper(), weaponLevel);
+        DeactivateLaser();
+        _levels[(int)type] = Mathf.Min(_levels[(int)type] + 1, 3);
+        currentWeapon      = type;
+        NotifyHUD();
     }
 
     public void SetWeapon(WeaponType type)
     {
         DeactivateLaser();
         currentWeapon = type;
-        weaponLevel   = 0;
-        HUDController.Instance?.UpdateWeapon(currentWeapon.ToString().ToUpper(), weaponLevel);
+        NotifyHUD();
     }
+
+    void NotifyHUD() =>
+        HUDController.Instance?.UpdateWeapon(currentWeapon.ToString().ToUpper(), WeaponLevel + 1);
 
     void ShootNormal()
     {
         _fireCooldown = fireRateNormal;
-        switch (weaponLevel)
+        switch (WeaponLevel)
         {
-            case 0: SpawnBullet(bulletNormalPrefab, _shootPoint.position, Vector2.right); break;
+            case 0:
+                SpawnBullet(bulletNormalPrefab, _shootPoint.position, Vector2.right);
+                break;
             case 1:
                 SpawnBullet(bulletNormalPrefab, _shootPoint.position + Vector3.up   * 0.15f, Vector2.right);
                 SpawnBullet(bulletNormalPrefab, _shootPoint.position + Vector3.down * 0.15f, Vector2.right);
                 break;
             case 2:
-                SpawnBullet(bulletNormalPrefab, _shootPoint.position,                          Vector2.right);
+                SpawnBullet(bulletNormalPrefab, _shootPoint.position,                        Vector2.right);
                 SpawnBullet(bulletNormalPrefab, _shootPoint.position + Vector3.up   * 0.28f, Vector2.right);
                 SpawnBullet(bulletNormalPrefab, _shootPoint.position + Vector3.down * 0.28f, Vector2.right);
+                break;
+            case 3:
+                SpawnBullet(bulletNormalPrefab, _shootPoint.position + Vector3.up   * 0.12f, Vector2.right);
+                SpawnBullet(bulletNormalPrefab, _shootPoint.position + Vector3.down * 0.12f, Vector2.right);
+                SpawnBullet(bulletNormalPrefab, _shootPoint.position + Vector3.up   * 0.38f, Vector2.right);
+                SpawnBullet(bulletNormalPrefab, _shootPoint.position + Vector3.down * 0.38f, Vector2.right);
                 break;
         }
     }
@@ -125,7 +162,7 @@ public class WeaponSystem : MonoBehaviour
     void ShootSpread()
     {
         _fireCooldown = fireRateSpread;
-        int   count      = weaponLevel == 0 ? 3 : weaponLevel == 1 ? 4 : 5;
+        int   count      = WeaponLevel == 0 ? 3 : WeaponLevel == 1 ? 4 : WeaponLevel == 2 ? 5 : 7;
         float totalAngle = spreadAngle * (count - 1);
         float startAngle = -totalAngle / 2f;
         for (int i = 0; i < count; i++)
@@ -141,8 +178,8 @@ public class WeaponSystem : MonoBehaviour
         _fireCooldown      = 0f;
         _laserActive       = true;
         _laserLine.enabled = true;
-        _laserLine.startWidth = (0.08f + weaponLevel * 0.06f) * bulletScale;
-        _laserLine.endWidth   = (0.04f + weaponLevel * 0.03f) * bulletScale;
+        _laserLine.startWidth = (0.08f + WeaponLevel * 0.06f) * bulletScale;
+        _laserLine.endWidth   = (0.04f + WeaponLevel * 0.03f) * bulletScale;
 
         Vector2 origin   = _shootPoint.position;
         Vector2 endPoint = origin + Vector2.right * laserMaxLength;
@@ -165,12 +202,16 @@ public class WeaponSystem : MonoBehaviour
 
         if (bestHit.collider != null)
         {
-            endPoint = bestHit.point;
-            _laserDamageAccum += laserDamagePerSecond * Time.deltaTime;
+            endPoint = bestHit.collider.bounds.center;
+            float dps = laserDamagePerSecond * (1f + WeaponLevel * 0.4f);
+            _laserDamageAccum += dps * Time.deltaTime;
             int dmg = Mathf.FloorToInt(_laserDamageAccum);
             if (dmg > 0)
             {
-                bestHit.collider.GetComponent<EnemyHealth>()?.TakeDamage(dmg);
+                var eh   = bestHit.collider.GetComponent<EnemyHealth>();
+                var boss = bestHit.collider.GetComponent<BossController>();
+                if (eh   != null) eh.TakeDamage(dmg);
+                else if (boss != null) boss.TakeDamage(dmg);
                 _laserDamageAccum -= dmg;
             }
         }
@@ -186,17 +227,20 @@ public class WeaponSystem : MonoBehaviour
     void DeactivateLaser()
     {
         if (_laserLine != null) _laserLine.enabled = false;
+        if (_laserActive) AudioManager.Instance?.StopLaserSFX();
         _laserActive      = false;
         _laserDamageAccum = 0f;
     }
 
     void ShootHoming()
     {
-        _fireCooldown = fireRateHoming - weaponLevel * 0.08f;
-        int count = weaponLevel == 2 ? 2 : 1;
+        _fireCooldown = fireRateHoming - WeaponLevel * 0.07f;
+        int count = WeaponLevel == 0 ? 1 : WeaponLevel == 1 ? 1 : WeaponLevel == 2 ? 2 : 3;
         for (int i = 0; i < count; i++)
         {
-            Vector3 offset = i == 0 ? Vector3.zero : Vector3.up * 0.4f;
+            Vector3 offset = i == 0 ? Vector3.zero
+                           : i == 1 ? Vector3.up   * 0.4f
+                                    : Vector3.down  * 0.4f;
             SpawnBullet(bulletHomingPrefab, _shootPoint.position + offset, Vector2.right);
         }
     }
@@ -216,5 +260,5 @@ public class WeaponSystem : MonoBehaviour
     }
 
     public WeaponType CurrentWeapon => currentWeapon;
-    public int        WeaponLevel   => weaponLevel;
+    public int        CurrentLevel  => WeaponLevel;
 }

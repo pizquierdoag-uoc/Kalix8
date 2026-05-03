@@ -23,8 +23,14 @@ public class EnemyBullet : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            other.GetComponent<PlayerController>()?.TakeDamage(damage);
+            other.GetComponent<PlayerController>()?.TakeLifeDamage();
             gameObject.SetActive(false);
+            return;
+        }
+        if (other.CompareTag("Wall") || other.CompareTag("PlayerBullet"))
+        {
+            gameObject.SetActive(false);
+            return;
         }
     }
 }

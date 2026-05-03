@@ -23,6 +23,10 @@ public class EnemyKamikaze : EnemyBase
             _direction = (_player.position - transform.position).normalized;
         else
             _direction = Vector2.left;
+
+        float angle = Mathf.Atan2(_direction.y, _direction.x) * Mathf.Rad2Deg;
+        transform.rotation = Quaternion.Euler(0, 0, angle);
+
         _locked = true;
     }
 
@@ -31,13 +35,6 @@ public class EnemyKamikaze : EnemyBase
         if (!_locked) return;
 
         transform.Translate(_direction * moveSpeed * Time.deltaTime, Space.World);
-
-        float angle = Mathf.Atan2(_direction.y, _direction.x) * Mathf.Rad2Deg;
-        transform.rotation = Quaternion.RotateTowards(
-            transform.rotation,
-            Quaternion.Euler(0, 0, angle),
-            rotateSpeed * Time.deltaTime
-        );
 
         if (transform.position.x < -15f || Mathf.Abs(transform.position.y) > 12f)
             gameObject.SetActive(false);

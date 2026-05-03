@@ -13,7 +13,7 @@ public class StageClearManager : MonoBehaviour
         Instance = this;
     }
 
-    [Header("Panel de resultados (en el Canvas)")]
+    [Header("Panel de resultados (Canvas)")]
     public GameObject resultPanel;
 
     [Header("Textos del resultado")]
@@ -33,27 +33,31 @@ public class StageClearManager : MonoBehaviour
     [Header("Fundido a negro")]
     public Image fadeImage;  // Image negro que cubre toda la pantalla
 
-    [Header("Overlay inmediato (se muestra al matar al boss)")]
-    [Tooltip("Panel/texto que aparece nada más morir el boss. Opcional.")]
+    [Header("Texto al matar al boss)")]    
     public GameObject stageClearMessage;
 
     [Header("Tiempos (segundos)")]
-    public float fadeDuration       = 2f;
-    public float countDuration      = 2.5f;
-    public float delayBeforeShow    = 0.5f;
-    public float waitBeforeStop     = 5f;   // segundos entre panel y parar scroll
+    public float fadeDuration          = 2f;
+    public float countDuration         = 2.5f;
+    public float delayBeforeShow       = 0.5f;
+    public float waitBeforeStop        = 5f;   // segundos entre Stage Clear y parar scroll
+    public float bossExplosionDuration = 3f;   // espera la explosión antes de Stage Clear
 
     [Header("Bonus")]
-    public int bonusPerLife  = 10000;
-    public int maxTimeBonus  = 50000;
-    public float maxBonusTime = 120f; // segundos — si tardas menos gets max bonus
+    public int   bonusPerLife    = 10000; // puntos por vida restante
+    public float maxBonusTime    = 500f;  // segundos límite para el bonus de tiempo
+    public float pointsPerSecond = 1000f; // puntos por segundo restante: (maxBonusTime - elapsed) * pointsPerSecond
 
     float _stageStartTime;
     bool  _triggered;
+    int   _capturedScore;
+    int   _capturedLives;
 
     void Start()
     {
         _stageStartTime = Time.realtimeSinceStartup;
+
+        AutoWireComponents();
 
         // Oculta el panel al inicio
         if (resultPanel != null) resultPanel.SetActive(false);
@@ -70,32 +74,103 @@ public class StageClearManager : MonoBehaviour
             btnContinue.onClick.AddListener(GoToMainMenu);
     }
 
+    // Busca automáticamente los componentes TMP por nombre si no están asignados en Inspector
+    void AutoWireComponents()
+    {
+        if (resultPanel == null) return;
+
+        var allTMP = resultPanel.GetComponentsInChildren<TextMeshProUGUI>(true);
+        foreach (var t in allTMP)
+        {
+            string n = t.gameObject.name;
+            if (txtStageClear      == null && Has(n, "StageClear"))                          txtStageClear      = t;
+            if (txtScoreLabel      == null && Has(n, "ScoreLabel"))                          txtScoreLabel      = t;
+            if (txtScoreValue      == null && Has(n, "ScoreValue"))                          txtScoreValue      = t;
+            bool isLive = Has(n, "LiveBonus") || Has(n, "LivesBonus");
+            if (txtLivesBonus      == null && isLive && !Has(n, "Value"))                    txtLivesBonus      = t;
+            if (txtLivesBonusValue == null && isLive &&  Has(n, "Value"))                    txtLivesBonusValue = t;
+            if (txtTimeBonus       == null && Has(n, "TimeBonus") && !Has(n, "Value"))       txtTimeBonus       = t;
+            if (txtTimeBonusValue  == null && Has(n, "TimeBonus") &&  Has(n, "Value"))       txtTimeBonusValue  = t;
+            if (txtTotalLabel      == null && Has(n, "TotalLabel"))                          txtTotalLabel      = t;
+            if (txtTotalValue      == null && Has(n, "TotalValue"))                          txtTotalValue      = t;
+        }
+
+        if (btnContinue == null)
+            btnContinue = resultPanel.GetComponentInChildren<Button>(true);
+
+        Debug.Log($"[StageClear] AutoWire — " +
+                  $"StageClear={txtStageClear != null} " +
+                  $"ScoreLabel={txtScoreLabel != null} ScoreValue={txtScoreValue != null} " +
+                  $"LivesBonus={txtLivesBonus != null} LivesBonusValue={txtLivesBonusValue != null} " +
+                  $"TimeBonus={txtTimeBonus != null} TimeBonusValue={txtTimeBonusValue != null} " +
+                  $"TotalLabel={txtTotalLabel != null} TotalValue={txtTotalValue != null} " +
+                  $"Btn={btnContinue != null}");
+    }
+
+    static bool Has(string name, string token) =>
+        name.IndexOf(token, System.StringComparison.OrdinalIgnoreCase) >= 0;
+
     public void TriggerStageClear()
     {
         if (_triggered) return;
         _triggered = true;
+
+        // Captura los valores en el momento exacto en que muere el boss
+        bool hasScore = ScoreManager.Instance != null;
+        bool hasGame  = GameManager.Instance  != null;
+        _capturedScore = hasScore ? ScoreManager.Instance.CurrentScore : 0;
+        _capturedLives = hasGame  ? GameManager.Instance.CurrentLives  : 0;
+        Debug.Log($"[StageClear] TriggerStageClear — " +
+                  $"ScoreManager={hasScore} score={_capturedScore}  " +
+                  $"GameManager={hasGame} vidas={_capturedLives}");
+
         StartCoroutine(StageClearSequence());
     }
 
     IEnumerator StageClearSequence()
     {
+        // Espera la explosión del boss
+        yield return new WaitForSeconds(bossExplosionDuration);
+
+        // Muestra "STAGE CLEAR" e inicia música de victoria
         if (stageClearMessage != null) stageClearMessage.SetActive(true);
+        AudioManager.Instance?.PlayVictoryMusic();
 
-        yield return new WaitForSeconds(waitBeforeStop);
+        // Bloquea controles y anima la nave saliendo por la derecha
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+        if (player != null && !player.IsDead)
+            yield return StartCoroutine(player.ExitScreenRight());
 
-        ScrollManager sm = FindAnyObjectByType<ScrollManager>();
-        sm?.PauseScroll();
+        // Para el scroll y limpia enemigos
+        FindAnyObjectByType<ScrollManager>()?.PauseScroll();
         StopAllEnemies();
 
         if (stageClearMessage != null) stageClearMessage.SetActive(false);
 
-        yield return new WaitForSeconds(0.4f);
+        // Oculta el HUD de juego
+        HUDController.Instance?.HideGameHUD();
 
-        yield return StartCoroutine(FadeToBlack());
+        // Fundido a negro en 3 segundos
+        yield return StartCoroutine(FadeToBlack(3f));
+
+        // Tras el fundido: desactiva el scroll (tiles de fondo) y limpia la cámara
+        if (ScrollManager.Instance != null) ScrollManager.Instance.gameObject.SetActive(false);
+        if (Camera.main != null)
+        {
+            Camera.main.clearFlags       = CameraClearFlags.SolidColor;
+            Camera.main.backgroundColor  = Color.black;
+        }
+
+        // Orden de render en el canvas: fadeImage primero, resultPanel encima
+        if (fadeImage   != null) fadeImage.transform.SetAsLastSibling();
 
         yield return new WaitForSeconds(delayBeforeShow);
 
-        if (resultPanel != null) resultPanel.SetActive(true);
+        if (resultPanel != null)
+        {
+            resultPanel.transform.SetAsLastSibling();
+            resultPanel.SetActive(true);
+        }
 
         yield return StartCoroutine(AnimateResults());
 
@@ -120,16 +195,15 @@ public class StageClearManager : MonoBehaviour
         }
     }
 
-    IEnumerator FadeToBlack()
+    IEnumerator FadeToBlack(float duration = -1f)
     {
         if (fadeImage == null) yield break;
-
+        float d = duration > 0f ? duration : fadeDuration;
         float t = 0f;
-        while (t < fadeDuration)
+        while (t < d)
         {
             t += Time.unscaledDeltaTime;
-            float alpha = Mathf.Clamp01(t / fadeDuration);
-            fadeImage.color = new Color(0, 0, 0, alpha);
+            fadeImage.color = new Color(0, 0, 0, Mathf.Clamp01(t / d));
             yield return null;
         }
         fadeImage.color = new Color(0, 0, 0, 1f);
@@ -137,59 +211,76 @@ public class StageClearManager : MonoBehaviour
 
     IEnumerator AnimateResults()
     {
-        int baseScore  = ScoreManager.Instance != null ? ScoreManager.Instance.CurrentScore : 0;
-        int lives      = GameManager.Instance   != null ? GameManager.Instance.CurrentLives  : 0;
-        int livesBonus = lives * bonusPerLife;
+        int   baseScore  = _capturedScore;
+        int   lives      = _capturedLives;
+        int   livesBonus = lives * bonusPerLife;
+        float elapsed    = Time.realtimeSinceStartup - _stageStartTime;
+        int   timeBonus  = Mathf.Max(0, Mathf.RoundToInt((maxBonusTime - elapsed) * pointsPerSecond));
+        int   total      = baseScore + livesBonus + timeBonus;
 
-        float elapsed   = Time.realtimeSinceStartup - _stageStartTime;
-        float timeRatio = Mathf.Clamp01(1f - (elapsed / maxBonusTime));
-        int   timeBonus = Mathf.RoundToInt(maxTimeBonus * timeRatio);
-        int   total     = baseScore + livesBonus + timeBonus;
+        Debug.Log($"[StageClear] score={baseScore}  vidas={lives}  livesBonus={livesBonus}  timeBonus={timeBonus}  total={total}  elapsed={elapsed:F1}s");
 
-        // Muestra STAGE CLEAR
+        // Limpia todos los textos al empezar
+        if (txtScoreLabel      != null) txtScoreLabel.text      = "";
+        if (txtScoreValue      != null) txtScoreValue.text      = "";
+        if (txtLivesBonus      != null) txtLivesBonus.text      = "";
+        if (txtLivesBonusValue != null) txtLivesBonusValue.text = "";
+        if (txtTimeBonus       != null) txtTimeBonus.text       = "";
+        if (txtTimeBonusValue  != null) txtTimeBonusValue.text  = "";
+        if (txtTotalLabel      != null) txtTotalLabel.text      = "";
+        if (txtTotalValue      != null) txtTotalValue.text      = "";
+
         if (txtStageClear != null)
         {
             txtStageClear.text  = "STAGE CLEAR";
             txtStageClear.color = new Color(1f, 0.9f, 0.1f);
         }
 
+        yield return new WaitForSeconds(0.8f);
+
+        // Arranca el sonido de conteo en bucle
+        AudioManager.Instance?.PlayStageClearScore();
+
+        // ── 1. SCORE — muestra directamente el valor obtenido ─────────────
+        if (txtScoreLabel != null) txtScoreLabel.text = "SCORE";
+        if (txtScoreValue != null) txtScoreValue.text = baseScore.ToString("D8");
+
         yield return new WaitForSeconds(0.6f);
 
-        // Inicializa todos los valores a cero antes de animar
-        if (txtScoreValue      != null) txtScoreValue.text      = "00000000";
-        if (txtLivesBonusValue != null) txtLivesBonusValue.text = "00000000";
-        if (txtTimeBonusValue  != null) txtTimeBonusValue.text  = "00000000";
-        if (txtTotalValue      != null) txtTotalValue.text      = "00000000";
+        // ── 2. LIVES BONUS — sube bonusPerLife por vida, una por segundo ──
+        if (txtLivesBonus      != null) txtLivesBonus.text      = "LIVES BONUS  x" + lives;
+        if (txtLivesBonusValue != null) txtLivesBonusValue.text = 0.ToString("D8");
 
-        // Muestra etiquetas
-        if (txtScoreLabel  != null) txtScoreLabel.text  = "SCORE";
-        if (txtLivesBonus  != null) txtLivesBonus.text  = "LIVES BONUS  x" + lives;
-        if (txtTimeBonus   != null) txtTimeBonus.text   = "TIME BONUS";
-        if (txtTotalLabel  != null) txtTotalLabel.text  = "TOTAL";
+        for (int i = 1; i <= lives; i++)
+        {
+            yield return new WaitForSeconds(1f);
+            if (txtLivesBonusValue != null)
+                txtLivesBonusValue.text = (i * bonusPerLife).ToString("D8");
+        }
 
-        yield return new WaitForSeconds(0.3f);
-
-        // Cuenta animada — score base
-        yield return StartCoroutine(CountUp(txtScoreValue, 0, baseScore, countDuration * 0.4f));
-        yield return new WaitForSeconds(0.2f);
-
-        // Cuenta animada — lives bonus
-        yield return StartCoroutine(CountUp(txtLivesBonusValue, 0, livesBonus, countDuration * 0.3f));
-        yield return new WaitForSeconds(0.2f);
-
-        // Cuenta animada — time bonus
-        yield return StartCoroutine(CountUp(txtTimeBonusValue, 0, timeBonus, countDuration * 0.3f));
         yield return new WaitForSeconds(0.4f);
 
-        // Cuenta animada — total (más dramático)
-        if (txtTotalValue != null) txtTotalValue.color = new Color(1f, 0.9f, 0.1f);
-        yield return StartCoroutine(CountUp(txtTotalValue, 0, total, countDuration * 0.5f));
+        // ── 3. TIME BONUS — cuenta rápida hasta el valor final ────────────
+        if (txtTimeBonus      != null) txtTimeBonus.text      = "TIME BONUS";
+        if (txtTimeBonusValue != null) txtTimeBonusValue.text = 0.ToString("D8");
+        yield return new WaitForSeconds(0.2f);
+        yield return StartCoroutine(CountUp(txtTimeBonusValue, 0, timeBonus, 1.5f));
 
-        // Guarda el hi-score final
+        yield return new WaitForSeconds(0.5f);
+
+        // ── 4. TOTAL — para el sonido de conteo y cuenta en 3 segundos ──
+        AudioManager.Instance?.StopStageClearScore();
+
+        if (txtTotalLabel != null) txtTotalLabel.text = "TOTAL";
+        if (txtTotalValue != null)
+        {
+            txtTotalValue.text  = 0.ToString("D8");
+            txtTotalValue.color = new Color(1f, 0.9f, 0.1f);
+        }
+        yield return new WaitForSeconds(0.2f);
+        yield return StartCoroutine(CountUp(txtTotalValue, 0, total, 3f));
+
         ScoreManager.Instance?.SaveHiScore();
-
-        // Sonido de victoria
-        AudioManager.Instance?.PlayVictoryMusic();
     }
 
     IEnumerator CountUp(TextMeshProUGUI label, int from, int to, float duration)
@@ -209,6 +300,31 @@ public class StageClearManager : MonoBehaviour
 
     void GoToMainMenu()
     {
+        StartCoroutine(FadeOutAndGoToMenu());
+    }
+
+    IEnumerator FadeOutAndGoToMenu()
+    {
+        if (btnContinue != null) btnContinue.interactable = false;
+
+        // Para la música con fundido
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.StopMusic();
+
+        // Fundido a negro
+        if (fadeImage != null)
+        {
+            fadeImage.gameObject.SetActive(true);
+            float t = 0f;
+            while (t < fadeDuration)
+            {
+                t += Time.unscaledDeltaTime;
+                fadeImage.color = new Color(0, 0, 0, Mathf.Clamp01(t / fadeDuration));
+                yield return null;
+            }
+            fadeImage.color = new Color(0, 0, 0, 1f);
+        }
+
         GameManager.Instance?.GoToMainMenu();
     }
 }

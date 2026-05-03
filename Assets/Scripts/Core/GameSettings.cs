@@ -4,22 +4,30 @@ public static class GameSettings
 {
     public enum Difficulty { Easy = 0, Normal = 1, Hard = 2 }
 
-    const string KEY_LIVES = "opt_lives";
-    const string KEY_DIFF  = "opt_difficulty";
+    const string KEY_LIVES     = "opt_lives";
+    const string KEY_DIFF      = "opt_difficulty";
+    const string KEY_BOMBS     = "opt_bombs";
+    const string KEY_CONTINUES = "opt_continues";
 
     static int        _lives;
+    static int        _bombs;
+    static int        _continues;
     static Difficulty _difficulty;
     static bool       _loaded;
 
     static void EnsureLoaded()
     {
         if (_loaded) return;
-        _lives      = PlayerPrefs.GetInt(KEY_LIVES, 3);
+        _lives      = PlayerPrefs.GetInt(KEY_LIVES,     3);
+        _bombs      = PlayerPrefs.GetInt(KEY_BOMBS,     3);
+        _continues  = PlayerPrefs.GetInt(KEY_CONTINUES, 3);
         _difficulty = (Difficulty)PlayerPrefs.GetInt(KEY_DIFF, (int)Difficulty.Normal);
         _loaded     = true;
     }
 
     public static int        StartingLives      { get { EnsureLoaded(); return _lives;      } }
+    public static int        StartingBombs      { get { EnsureLoaded(); return _bombs;      } }
+    public static int        StartingContinues  { get { EnsureLoaded(); return _continues;  } }
     public static Difficulty CurrentDifficulty  { get { EnsureLoaded(); return _difficulty; } }
 
 
@@ -71,9 +79,9 @@ public static class GameSettings
         {
             switch (CurrentDifficulty)
             {
-                case Difficulty.Easy: return "FÁCIL";
-                case Difficulty.Hard: return "DIFÍCIL";
-                default:              return "NORMAL";
+                case Difficulty.Easy: return "Easy";
+                case Difficulty.Hard: return "Hard";
+                default:              return "Normal";
             }
         }
     }
@@ -96,6 +104,22 @@ public static class GameSettings
         EnsureLoaded();
         _lives = Mathf.Clamp(lives, 2, 5);
         PlayerPrefs.SetInt(KEY_LIVES, _lives);
+        PlayerPrefs.Save();
+    }
+
+    public static void SetBombs(int bombs)
+    {
+        EnsureLoaded();
+        _bombs = Mathf.Clamp(bombs, 0, 9);
+        PlayerPrefs.SetInt(KEY_BOMBS, _bombs);
+        PlayerPrefs.Save();
+    }
+
+    public static void SetContinues(int continues)
+    {
+        EnsureLoaded();
+        _continues = Mathf.Clamp(continues, 0, 9);
+        PlayerPrefs.SetInt(KEY_CONTINUES, _continues);
         PlayerPrefs.Save();
     }
 

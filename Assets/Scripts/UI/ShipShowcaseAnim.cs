@@ -6,7 +6,7 @@ public class ShipShowcaseAnim : MonoBehaviour
 {
     [Header("Posiciones (unidades de mundo)")]
     public Vector3 targetPosition = new Vector3(0f, -0.8f, 0f);
-    public Vector3 startPosition  = new Vector3(0f, -9f,  0f); // Fuera de pantalla
+    public Vector3 startPosition  = new Vector3(0f, -9f,  0f);
 
     [Header("Animación de entrada")]
     public float          entryDuration = 2.0f;
@@ -14,25 +14,32 @@ public class ShipShowcaseAnim : MonoBehaviour
     public AnimationCurve entryCurve;
 
     [Header("Flotación idle")]
-    public float hoverAmplitude = 0.18f;  // Amplitud vertical (unidades)
-    public float hoverFrequency = 0.60f;  // Ciclos por segundo
+    public float hoverAmplitude = 0.18f;
+    public float hoverFrequency = 0.60f;
 
-    [Header("Motor (opcional)")]
-    [Tooltip("Arrastra aquí el FrameAnimator del motor/thruster de la nave.")]
-    public FrameAnimator thrusterAnimator;
+    [Header("Salida — motor")]
+    [Tooltip("Frames del motor que se muestran al salir hacia la derecha.")]
+    public Sprite[] thrustFrames;
+    public float    thrustFps      = 14f;
+    [Tooltip("Duración del movimiento de salida (segundos).")]
+    public float    exitDuration   = 1.0f;
+    [Tooltip("Distancia horizontal hasta salir de pantalla (unidades de mundo).")]
+    public float    exitDistance   = 22f;
 
     public bool EntryComplete { get; private set; }
+    public bool ExitComplete  { get; private set; }
 
-    bool  _hovering;
-    float _hoverTime;
+    SpriteRenderer _sr;
+    bool           _hovering;
+    float          _hoverTime;
 
     void Awake()
     {
+        _sr = GetComponent<SpriteRenderer>();
         if (entryCurve == null || entryCurve.length == 0)
             BuildDefaultCurve();
     }
 
-    // Curva con spring-overshoot: llega rápido, se pasa, rebota al target
     void BuildDefaultCurve()
     {
         entryCurve = new AnimationCurve(
@@ -61,12 +68,14 @@ public class ShipShowcaseAnim : MonoBehaviour
 
     public void PlayEntry()
     {
-        if (thrusterAnimator != null)
-        {
-            thrusterAnimator.loop = true;
-            thrusterAnimator.Play();
-        }
         StartCoroutine(EntryRoutine());
+    }
+
+    public void PlayExit()
+    {
+        _hovering    = false;
+        ExitComplete = false;
+        StartCoroutine(ExitRoutine());
     }
 
     IEnumerator EntryRoutine()
@@ -85,6 +94,38 @@ public class ShipShowcaseAnim : MonoBehaviour
         EntryComplete      = true;
         _hovering          = true;
         _hoverTime         = 0f;
+    }
+
+    IEnumerator ExitRoutine()
+    {
+        Vector3 startPos  = transform.position;
+        Vector3 exitPos   = startPos + new Vector3(exitDistance, 0f, 0f);
+        float   elapsed   = 0f;
+        float   frameTime = 0f;
+        int     frameIdx  = 0;
+
+        while (elapsed < exitDuration)
+        {
+            elapsed   += Time.deltaTime;
+            frameTime += Time.deltaTime;
+
+            if (thrustFrames != null && thrustFrames.Length > 0 && _sr != null)
+            {
+                if (frameTime >= 1f / thrustFps)
+                {
+                    frameTime = 0f;
+                    frameIdx  = (frameIdx + 1) % thrustFrames.Length;
+                    _sr.sprite = thrustFrames[frameIdx];
+                }
+            }
+
+            float t = Mathf.Clamp01(elapsed / exitDuration);
+            float v = t * t; // aceleración cuadrática
+            transform.position = Vector3.LerpUnclamped(startPos, exitPos, v);
+            yield return null;
+        }
+
+        ExitComplete = true;
     }
 
     void Update()

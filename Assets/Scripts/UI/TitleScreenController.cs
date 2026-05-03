@@ -115,7 +115,10 @@ public class TitleScreenController : MonoBehaviour
         if (_blinkRoutine != null) StopCoroutine(_blinkRoutine);
         if (pressStartText != null) pressStartText.gameObject.SetActive(false);
 
-        yield return StartCoroutine(FadeTo(1f, 0.7f));
+        shipAnim?.PlayExit();
+        if (shipAnim != null)
+            yield return new WaitUntil(() => shipAnim.ExitComplete);
+        yield return StartCoroutine(FadeTo(1f, 2.1f));
         SceneManager.LoadScene(mainMenuScene);
     }
 

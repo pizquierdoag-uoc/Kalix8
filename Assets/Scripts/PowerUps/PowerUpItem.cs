@@ -7,7 +7,6 @@ public enum PowerUpType
     WeaponSpread,
     WeaponLaser,
     WeaponHoming,
-    WeaponUpgrade,
     ExtraLife,
     Shield,
     SpeedBoost,
@@ -78,19 +77,16 @@ public class PowerUpItem : MonoBehaviour
         switch (type)
         {
             case PowerUpType.WeaponNormal:
-                player.GetComponent<WeaponSystem>()?.SetWeapon(WeaponSystem.WeaponType.Normal);
+                player.GetComponent<WeaponSystem>()?.UpgradeWeapon(WeaponSystem.WeaponType.Normal);
                 break;
             case PowerUpType.WeaponSpread:
-                player.GetComponent<WeaponSystem>()?.SetWeapon(WeaponSystem.WeaponType.Spread);
+                player.GetComponent<WeaponSystem>()?.UpgradeWeapon(WeaponSystem.WeaponType.Spread);
                 break;
             case PowerUpType.WeaponLaser:
-                player.GetComponent<WeaponSystem>()?.SetWeapon(WeaponSystem.WeaponType.Laser);
+                player.GetComponent<WeaponSystem>()?.UpgradeWeapon(WeaponSystem.WeaponType.Laser);
                 break;
             case PowerUpType.WeaponHoming:
-                player.GetComponent<WeaponSystem>()?.SetWeapon(WeaponSystem.WeaponType.Homing);
-                break;
-            case PowerUpType.WeaponUpgrade:
-                player.GetComponent<WeaponSystem>()?.Upgrade();
+                player.GetComponent<WeaponSystem>()?.UpgradeWeapon(WeaponSystem.WeaponType.Homing);
                 break;
             case PowerUpType.ExtraLife:
                 player.AddHealth(1);
@@ -119,16 +115,15 @@ public class PowerUpItem : MonoBehaviour
     {
         switch (t)
         {
-            case PowerUpType.WeaponNormal:  return new Color(0.2f, 0.8f, 1f);
-            case PowerUpType.WeaponSpread:  return new Color(0.8f, 0.4f, 1f);
-            case PowerUpType.WeaponLaser:   return new Color(1f, 0.65f, 0f);
+            case PowerUpType.WeaponNormal:  return new Color(1f, 0.85f, 0.1f);
+            case PowerUpType.WeaponSpread:  return new Color(0.2f, 1f, 0.3f);
+            case PowerUpType.WeaponLaser:   return new Color(0.3f, 0.85f, 1f);
             case PowerUpType.WeaponHoming:  return new Color(1f, 0.35f, 0.25f);
-            case PowerUpType.WeaponUpgrade: return new Color(1f, 0.9f, 0f);
             case PowerUpType.ExtraLife:     return new Color(0.2f, 1f, 0.4f);
             case PowerUpType.Shield:        return new Color(0.4f, 0.8f, 1f);
-            case PowerUpType.SpeedBoost:    return new Color(1f, 0.8f, 0.2f);
+            case PowerUpType.SpeedBoost:    return Color.white;
             case PowerUpType.Bomb:          return new Color(1f, 0.3f, 0.3f);
-            case PowerUpType.OrbitDrones:   return new Color(0.6f, 1f, 0.6f);
+            case PowerUpType.OrbitDrones:   return Color.white;
             default:                        return Color.white;
         }
     }

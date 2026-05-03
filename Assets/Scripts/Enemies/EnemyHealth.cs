@@ -56,6 +56,8 @@ public class EnemyHealth : MonoBehaviour
         if (deathEffect != null)
             deathEffect.Play();
 
+        if (explosionPrefab == null)
+            Debug.LogWarning("[EnemyHealth] explosionPrefab no asignado en " + gameObject.name);
         ExplosionEffect.Spawn(explosionPrefab, transform.position);
 
         TryDropPowerUp();

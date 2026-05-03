@@ -49,7 +49,7 @@ public class HitSpark : MonoBehaviour
         return _sparkSprite;
     }
 
-    /// <summary>Instancia un destello de impacto en <paramref name="position"/>.</summary>
+    // Instancia un destello de impacto en <paramref name="position"/>.
     public static void Spawn(Vector3 position, Color tint, float size = 0.35f, float life = 0.12f)
     {
         var go = new GameObject("HitSpark");

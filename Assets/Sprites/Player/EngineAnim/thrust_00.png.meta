@@ -5,15 +5,6 @@ TextureImporter:
   - first:
       213: -4927780604740918966
     second: thrust_00_0
-  - first:
-      213: 8017298143967622963
-    second: thrust_00_1
-  - first:
-      213: -8568326938929771441
-    second: thrust_00_2
-  - first:
-      213: 2951301177788131457
-    second: thrust_00_3
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -46,7 +37,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -151,10 +142,10 @@ TextureImporter:
       name: thrust_00_0
       rect:
         serializedVersion: 2
-        x: 1
-        y: 39
-        width: 12
-        height: 9
+        x: 17
+        y: 12
+        width: 89
+        height: 42
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -165,72 +156,6 @@ TextureImporter:
       bones: []
       spriteID: a41ab5306a10d9bb0800000000000000
       internalID: -4927780604740918966
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: thrust_00_1
-      rect:
-        serializedVersion: 2
-        x: 11
-        y: 10
-        width: 95
-        height: 53
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 337b6993f2a234f60800000000000000
-      internalID: 8017298143967622963
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: thrust_00_2
-      rect:
-        serializedVersion: 2
-        x: 2
-        y: 19
-        width: 11
-        height: 9
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: f4c4ea5cb00371980800000000000000
-      internalID: -8568326938929771441
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: thrust_00_3
-      rect:
-        serializedVersion: 2
-        x: 49
-        y: 9
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 188e047d8c025f820800000000000000
-      internalID: 2951301177788131457
       vertices: []
       indices: 
       edges: []
@@ -250,9 +175,6 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       thrust_00_0: -4927780604740918966
-      thrust_00_1: 8017298143967622963
-      thrust_00_2: -8568326938929771441
-      thrust_00_3: 2951301177788131457
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

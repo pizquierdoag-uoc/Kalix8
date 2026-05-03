@@ -275,6 +275,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
   musicSource: {fileID: 100000004}
   sfxSource: {fileID: 100000003}
+  loopSfxSource: {fileID: 100000004}
   musicTitle: {fileID: 8300000, guid: ec5fdf250c6ce1d4389d04ae7f4b5c47, type: 3}
   musicMenu: {fileID: 8300000, guid: 899ea6442a16bd742918e61d24c70014, type: 3}
   musicGame: {fileID: 8300000, guid: fbf37e1886fbc1949b0771063b44dc70, type: 3}
@@ -284,7 +285,7 @@ MonoBehaviour:
   musicVolume: 0.743
   sfxShootNormal: {fileID: 8300000, guid: c41a3afae0f9a4c418c4baaeef2348d4, type: 3}
   sfxShootSpread: {fileID: 8300000, guid: 9b732d67567f7174298168bebd8ea1b5, type: 3}
-  sfxShootLaser: {fileID: 8300000, guid: 207e330f1d618b9479c04286ef041547, type: 3}
+  sfxShootLaser: {fileID: 8300000, guid: fa45fe86a1694f64ea5f6d31c47ffd6b, type: 3}
   sfxShootHoming: {fileID: 8300000, guid: ee79ca350be11d6438d9df12d598d729, type: 3}
   sfxPlayerHit: {fileID: 8300000, guid: 998dd7af204133d44b442fab2db11f6e, type: 3}
   sfxPlayerDeath: {fileID: 8300000, guid: 52853bca098d3884a81da85465e04dfa, type: 3}
@@ -292,8 +293,11 @@ MonoBehaviour:
   sfxEnemyHit: {fileID: 8300000, guid: f692ecacb8e97414fa962b1f7c2b1bf5, type: 3}
   sfxEnemyDeath: {fileID: 8300000, guid: d15e85797caaf2f43afb12dd53da5475, type: 3}
   sfxBossDeath: {fileID: 8300000, guid: 1d38f04f8cd9dfb488554381f5504166, type: 3}
+  sfxWarning: {fileID: 8300000, guid: aaf9e5f5c6c1cf54a9f9a2a7f9abc0dc, type: 3}
+  sfxBombExplosion: {fileID: 8300000, guid: 93b1e5c1ac7abff48984745d8e7227f6, type: 3}
   sfxMenuSelect: {fileID: 8300000, guid: c22130a0217141c43b4da9def08e8467, type: 3}
   sfxMenuConfirm: {fileID: 8300000, guid: a1a96846c04ac49499aada5a5ec4ef8a, type: 3}
+  sfxStageClearScore: {fileID: 0}
   sfxVolume: 0.8
 --- !u!82 &100000003
 AudioSource:
@@ -553,6 +557,7 @@ MonoBehaviour:
   mode: 0
   speedMultiplier: 0.15
   tileWidth: 38.4
+  tileOverlap: 0.05
   respawnX: 30
 --- !u!1 &302864815
 GameObject:
@@ -780,6 +785,89 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &767428051
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 767428053}
+  - component: {fileID: 767428052}
+  m_Layer: 0
+  m_Name: BombScreenEffect
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &767428052
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 767428051}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9655266b9c37eb2429d4c77028542bcf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BombScreenEffect
+  frames:
+  - {fileID: 6829175644185906075, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: 688177061035718125, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -3603736435531520432, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: 7494353483057300878, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: 131614985660801620, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -1683230704340239219, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -3050517315320618722, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -3767496067692975519, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: 5176943844286072866, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -179253880268147262, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -3728994208976622974, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -6650665622307831093, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -5490972264537726316, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -7906175210130305603, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: 1207039830956908674, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: 6719367028528341837, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: 1207039830956908674, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -7906175210130305603, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -5490972264537726316, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -6650665622307831093, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -3728994208976622974, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -179253880268147262, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: 5176943844286072866, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -3767496067692975519, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -3050517315320618722, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -1683230704340239219, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: 131614985660801620, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: 7494353483057300878, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: -3603736435531520432, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: 688177061035718125, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  - {fileID: 6829175644185906075, guid: d4df3d1dc2e17374f8635333f06752da, type: 3}
+  totalExplosions: 20
+  totalDuration: 4
+  explosionDuration: 1
+  explosionScale: 4
+  sortingOrder: 100
+  sortingLayerName: Foreground
+  spriteMaterial: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+--- !u!4 &767428053
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 767428051}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -4.18353, y: 8.54571, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &949749080
 GameObject:
   m_ObjectHideFlags: 0
@@ -949,7 +1037,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShipShowcaseAnim
   targetPosition: {x: 0, y: -0.8, z: 0}
   startPosition: {x: 0, y: -9, z: 0}
-  entryDuration: 2
+  entryDuration: 4
   entryCurve:
     serializedVersion: 2
     m_Curve: []
@@ -958,7 +1046,18 @@ MonoBehaviour:
     m_RotationOrder: 4
   hoverAmplitude: 0.18
   hoverFrequency: 0.6
-  thrusterAnimator: {fileID: 0}
+  thrustFrames:
+  - {fileID: -4927780604740918966, guid: 397fb52b371e3f34e9cd7cfaf4dcd9de, type: 3}
+  - {fileID: -7595321275029838429, guid: aea01a8581152be48bf00edabe891709, type: 3}
+  - {fileID: 1528380375097444363, guid: dce8ce5ca1cf31844af7e59e00b961af, type: 3}
+  - {fileID: -8069793645039160041, guid: 0d65d3e84159971478e9258a75d73e28, type: 3}
+  - {fileID: 4360395501082119948, guid: 40fd3e607978ed44e9f20ee7ee41977b, type: 3}
+  - {fileID: -1977576177752937481, guid: bc12f304ada56974da2b5b9689848ac8, type: 3}
+  - {fileID: -7563113886399273275, guid: aa237bc658f513d468558cd9ec725b65, type: 3}
+  - {fileID: -7371786052893774497, guid: e233fba0991cf98498ac963dc0a33593, type: 3}
+  thrustFps: 14
+  exitDuration: 1
+  exitDistance: 22
 --- !u!212 &1256220518
 SpriteRenderer:
   serializedVersion: 2
@@ -1008,7 +1107,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 8
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -5934761212996482088, guid: 8bb166b3b86daf0489c7d2ba3e6a217c, type: 3}
+  m_Sprite: {fileID: -6302563758487680414, guid: 0735ff623b233964fa11f4e69ce3a24a, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -1028,7 +1127,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3, y: 3, z: 3}
+  m_LocalScale: {x: 4, y: 4, z: 5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -1581,6 +1680,7 @@ MonoBehaviour:
   mode: 0
   speedMultiplier: 0.3
   tileWidth: 15.36
+  tileOverlap: 0.05
   respawnX: 30
 --- !u!1 &2129816423
 GameObject:
@@ -1731,3 +1831,4 @@ SceneRoots:
   - {fileID: 426148551}
   - {fileID: 695743107}
   - {fileID: 100000005}
+  - {fileID: 767428053}

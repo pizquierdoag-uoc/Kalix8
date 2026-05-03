@@ -51,28 +51,27 @@ public abstract class EnemyBase : MonoBehaviour
         b.transform.rotation = Quaternion.Euler(0, 0, angle);
     }
 
-    // Colisión con bala del jugador — delega en EnemyHealth
+    // Colisión con bala del jugador — fuente de verdad del daño
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("PlayerBullet"))
-        {
-            int dmg = 1;
-            Bullet b = other.GetComponent<Bullet>();
-            HomingMissile m = other.GetComponent<HomingMissile>();
-            if (b != null) dmg = b.damage;
-            if (m != null) dmg = m.damage;
+        if (!other.CompareTag("PlayerBullet")) return;
 
-            // Knockback: impulso en la dirección del impacto
-            Vector2 hitDir = ((Vector2)transform.position - (Vector2)other.transform.position).normalized;
-            Rigidbody2D rb = GetComponent<Rigidbody2D>();
-            if (rb != null && rb.bodyType != RigidbodyType2D.Static)
-                rb.AddForce(hitDir * 4f, ForceMode2D.Impulse);
+        int dmg = 1;
+        Bullet        b = other.GetComponent<Bullet>();
+        HomingMissile m = other.GetComponent<HomingMissile>();
+        if (b != null) dmg = b.damage;
+        if (m != null) dmg = m.damage;
 
-            // Chispa de impacto
-            HitSpark.Spawn(other.transform.position, Color.white);
+        // Knockback en la dirección del impacto
+        Vector2     hitDir = ((Vector2)transform.position - (Vector2)other.transform.position).normalized;
+        Rigidbody2D rb     = GetComponent<Rigidbody2D>();
+        if (rb != null && rb.bodyType != RigidbodyType2D.Static)
+            rb.AddForce(hitDir * 4f, ForceMode2D.Impulse);
 
-            _health?.TakeDamage(dmg);
-            other.gameObject.SetActive(false);
-        }
+        // Chispa de impacto
+        HitSpark.Spawn(other.transform.position, Color.white);
+
+        other.gameObject.SetActive(false);
+        _health?.TakeDamage(dmg);   // score de muerte lo gestiona EnemyHealth.Die()
     }
 }

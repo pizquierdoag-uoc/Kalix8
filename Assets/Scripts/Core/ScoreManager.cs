@@ -8,6 +8,7 @@ public class ScoreManager : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
 
     [Header("Puntos base por enemigo destruido")]

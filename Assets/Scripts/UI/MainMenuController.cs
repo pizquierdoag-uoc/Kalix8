@@ -17,7 +17,7 @@ public class MainMenuController : MonoBehaviour
         if (optionsPanel != null)
             optionsPanel.SetActive(false);
 
-        // La música la gestiona AudioManager — no se duplica con una fuente propia
+        // La música la gestiona AudioManager no se duplica con una fuente propia
         AudioManager.Instance?.PlayMenuMusic();
     }
 

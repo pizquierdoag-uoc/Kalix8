@@ -35,6 +35,7 @@ public class PlayerController : MonoBehaviour
     int            _currentHealth;
     bool           _isInvulnerable;
     bool           _isDead;
+    bool           _controlsDisabled;
 
     Rigidbody2D    _rb;
     SpriteRenderer _sr;
@@ -70,15 +71,14 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        if (_isDead) return;
+        if (_isDead || _controlsDisabled) return;
         ReadInput();
-        ApplyTilt();
         HandleShooting();
     }
 
     void FixedUpdate()
     {
-        if (_isDead) return;
+        if (_isDead || _controlsDisabled) return;
         MovePlayer();
     }
 
@@ -107,15 +107,6 @@ public class PlayerController : MonoBehaviour
         _rb.MovePosition(newPos);
     }
 
-    void ApplyTilt()
-    {
-        float targetAngle  = -_input.y * tiltAngle;
-        float currentAngle = transform.eulerAngles.z;
-        if (currentAngle > 180f) currentAngle -= 360f;
-        float smoothAngle = Mathf.Lerp(currentAngle, targetAngle, tiltSpeed * Time.deltaTime);
-        transform.rotation = Quaternion.Euler(0f, 0f, smoothAngle);
-    }
-
     void HandleShooting()
     {
         if (_weaponSystem == null || shootPoint == null) return;
@@ -134,17 +125,39 @@ public class PlayerController : MonoBehaviour
 
     public void TakeDamage(int amount = 1)
     {
-        if (_isInvulnerable || _isDead) return;
+        if (_isDead) return;
+        if (_isInvulnerable)
+        {
+            if (PowerUpManager.Instance != null && PowerUpManager.Instance.ShieldActive)
+                PowerUpManager.Instance.AbsorbShieldHit();
+            return;
+        }
         _currentHealth -= amount;
         AudioManager.Instance?.PlaySFX("player_hit");
         if (_currentHealth <= 0) Die();
         else StartCoroutine(InvulnerabilityRoutine());
     }
 
+    // Un disparo enemigo equivale a perder 1 vida completa
+    public void TakeLifeDamage()
+    {
+        if (_isDead) return;
+        if (_isInvulnerable)
+        {
+            if (PowerUpManager.Instance != null && PowerUpManager.Instance.ShieldActive)
+                PowerUpManager.Instance.AbsorbShieldHit();
+            return;
+        }
+        _currentHealth = 0;
+        AudioManager.Instance?.PlaySFX("player_hit");
+        Die();
+    }
+
     void Die()
     {
         _isDead = true;
-        _sr.enabled = false;
+        _weaponSystem?.StopShooting();
+        _sr.color = new Color(_sr.color.r, _sr.color.g, _sr.color.b, 0f);
         AudioManager.Instance?.PlaySFX("player_death");
 
         // Activa la animación de explosión del jugador
@@ -160,11 +173,12 @@ public class PlayerController : MonoBehaviour
 
     public void Respawn(Vector2 spawnPosition)
     {
-        _isDead        = false;
-        _currentHealth = maxHealth;
-        _velocity      = Vector2.zero;
+        _isDead           = false;
+        _controlsDisabled = false;
+        _currentHealth    = maxHealth;
+        _velocity         = Vector2.zero;
         transform.position = spawnPosition;
-        _sr.enabled        = true;
+        _sr.color          = new Color(_sr.color.r, _sr.color.g, _sr.color.b, 1f);
         if (playerExplosionChild != null) playerExplosionChild.SetActive(false);
         StartCoroutine(InvulnerabilityRoutine());
     }
@@ -173,33 +187,51 @@ public class PlayerController : MonoBehaviour
     {
         _isInvulnerable = true;
         float timer = 0f;
+        Color c = _sr.color;
         while (timer < invulnerableDuration)
         {
-            _sr.enabled = !_sr.enabled;
-            yield return new WaitForSeconds(blinkInterval);
+            c.a = c.a > 0.5f ? 0.15f : 1f;
+            _sr.color = c;
+            yield return new WaitForSecondsRealtime(blinkInterval);
             timer += blinkInterval;
         }
-        _sr.enabled     = true;
+        c.a = 1f;
+        _sr.color       = c;
         _isInvulnerable = false;
     }
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("EnemyBullet")) { TakeDamage(1); other.gameObject.SetActive(false); }
-        if (other.CompareTag("Enemy"))       { TakeDamage(1); }
-        if (other.CompareTag("PowerUp"))
-        {
-            other.gameObject.SetActive(false);
-        }
+        // EnemyBullet: el daño lo gestiona EnemyBullet.OnTriggerEnter2D (TakeLifeDamage)
+        if (other.CompareTag("Enemy"))  TakeDamage(maxHealth);  // colisión directa = 1 vida
+        if (other.CompareTag("PowerUp")) other.gameObject.SetActive(false);
     }
 
     public void SetInvulnerable(bool value) => _isInvulnerable = value;
 
-    public void UpgradeWeapon() => _weaponSystem?.Upgrade();
     public void AddHealth(int amount) => _currentHealth = Mathf.Min(_currentHealth + amount, maxHealth);
 
     public int  CurrentHealth  => _currentHealth;
     public bool IsDead         => _isDead;
+
+    // Bloquea controles y anima la nave saliendo por la derecha de pantalla
+    public IEnumerator ExitScreenRight(float exitSpeed = 10f)
+    {
+        _controlsDisabled = true;
+        _weaponSystem?.StopShooting();
+        _isInvulnerable = true;
+        _rb.linearVelocity = Vector2.zero;
+
+        transform.rotation = Quaternion.identity;
+        float exitX = _maxX + 4f;
+        while (transform.position.x < exitX)
+        {
+            _rb.linearVelocity = Vector2.right * exitSpeed;
+            yield return null;
+        }
+
+        gameObject.SetActive(false);
+    }
 
 #if UNITY_EDITOR
     void OnDrawGizmosSelected()

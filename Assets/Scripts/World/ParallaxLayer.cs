@@ -13,6 +13,9 @@ public class ParallaxLayer : MonoBehaviour
     [Header("Tiled — ancho de un tile en unidades Unity")]
     public float tileWidth = 20f;
 
+    [Tooltip("Solapamiento entre tiles para eliminar el seam visible (0.02–0.1 suele bastar)")]
+    [Range(0f, 0.5f)] public float tileOverlap = 0.05f;
+
     [Header("SingleObject — X de reaparición")]
     public float respawnX = 25f;
 
@@ -58,7 +61,7 @@ public class ParallaxLayer : MonoBehaviour
         Vector3 a = _tileA.localPosition;
         Vector3 b = _tileB.localPosition;
         a.x = -_scrollOffset;
-        b.x = tileWidth - _scrollOffset;
+        b.x = tileWidth - tileOverlap - _scrollOffset;
         _tileA.localPosition = a;
         _tileB.localPosition = b;
     }

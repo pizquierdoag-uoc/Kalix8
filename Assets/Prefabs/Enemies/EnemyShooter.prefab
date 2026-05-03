@@ -147,9 +147,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
   maxHealth: 3
   scoreValue: 100
+  dropChance: 0.18
+  dropPrefabs: []
   hitEffect: {fileID: 0}
   deathEffect: {fileID: 0}
-  explosionPrefab: {fileID: 0}
+  explosionPrefab: {fileID: 5505029368625499899, guid: 8a4e5fb783d4b3d4fb282ae4bb3044b9, type: 3}
 --- !u!114 &2830899341283270786
 MonoBehaviour:
   m_ObjectHideFlags: 0

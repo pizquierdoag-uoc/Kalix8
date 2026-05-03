@@ -3,10 +3,9 @@ using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using TMPro;
 
-/// <summary>
-/// Navegación por teclado para el menú principal.
-/// Flechas Arriba/Abajo para moverse, Enter/Espacio para confirmar.
-/// </summary>
+// Navegación por teclado para el menú principal.
+// Flechas Arriba/Abajo para moverse, Enter/Espacio para confirmar.
+
 public class MenuKeyboardNav : MonoBehaviour
 {
     [Header("Botones en orden (Jugar, Opciones, Salir)")]
@@ -16,8 +15,8 @@ public class MenuKeyboardNav : MonoBehaviour
     public GameObject optionsPanel;
 
     [Header("Colores")]
-    public Color colorSelected = new Color(0f, 0f, 0f, 1f);     // negro sólido
-    public Color colorNormal   = new Color(0f, 0f, 0f, 0.4f);  // negro semitransparente
+    public Color colorSelected = new Color(0f, 0f, 0f, 1f);     // Negro sólido
+    public Color colorNormal   = new Color(0f, 0f, 0f, 0.4f);   // Negro semitransparente
 
     [Header("Prefijo del botón seleccionado")]
     public string prefix = "► ";
@@ -64,7 +63,7 @@ public class MenuKeyboardNav : MonoBehaviour
 
     void Update()
     {
-        // No navegar si el panel de opciones está abierto
+        // Para no navegar si el panel de opciones está abierto
         if (optionsPanel != null && optionsPanel.activeSelf) return;
         if (Keyboard.current == null) return;
 
