@@ -12,7 +12,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("Límites de pantalla")]
     public float boundsPaddingX = 0.5f;
-    public float boundsPaddingY = 0.5f;
+    public float boundsPaddingY = 0f;
 
     [Header("Vida")]
     public int maxHealth = 3;
@@ -36,6 +36,7 @@ public class PlayerController : MonoBehaviour
     bool           _isInvulnerable;
     bool           _isDead;
     bool           _controlsDisabled;
+    Coroutine      _invulnerabilityCoroutine;
 
     Rigidbody2D    _rb;
     SpriteRenderer _sr;
@@ -60,7 +61,12 @@ public class PlayerController : MonoBehaviour
 
     void CalculateCameraBounds()
     {
-        Camera cam  = Camera.main;
+        Camera cam = Camera.main;
+        if (cam == null)
+        {
+            Debug.LogError("[PlayerController] No hay cámara con tag 'MainCamera'. Los límites de movimiento no funcionarán.");
+            return;
+        }
         float halfH = cam.orthographicSize;
         float halfW = halfH * cam.aspect;
         _minX = cam.transform.position.x - halfW + boundsPaddingX;
@@ -84,16 +90,35 @@ public class PlayerController : MonoBehaviour
 
     void ReadInput()
     {
-        var kb = Keyboard.current;
+        var kb  = Keyboard.current;
+        var gp  = Gamepad.current;
         _input.x = 0f;
         _input.y = 0f;
+
+        // Teclado
         if (kb != null)
         {
-            if (kb.leftArrowKey.isPressed || kb.aKey.isPressed) _input.x -= 1f;
+            if (kb.leftArrowKey.isPressed  || kb.aKey.isPressed) _input.x -= 1f;
             if (kb.rightArrowKey.isPressed || kb.dKey.isPressed) _input.x += 1f;
             if (kb.downArrowKey.isPressed  || kb.sKey.isPressed) _input.y -= 1f;
             if (kb.upArrowKey.isPressed    || kb.wKey.isPressed) _input.y += 1f;
         }
+
+        // Mando: stick izquierdo + D-pad
+        if (gp != null && _input == Vector2.zero)
+        {
+            Vector2 stick = gp.leftStick.ReadValue();
+            if (stick.magnitude > 0.15f)           // dead zone
+                _input = stick;
+            else
+            {
+                if (gp.dpad.left.isPressed)  _input.x -= 1f;
+                if (gp.dpad.right.isPressed) _input.x += 1f;
+                if (gp.dpad.down.isPressed)  _input.y -= 1f;
+                if (gp.dpad.up.isPressed)    _input.y += 1f;
+            }
+        }
+
         if (_input.magnitude > 1f) _input.Normalize();
     }
 
@@ -110,16 +135,38 @@ public class PlayerController : MonoBehaviour
     void HandleShooting()
     {
         if (_weaponSystem == null || shootPoint == null) return;
+
+        if (GameManager.Instance == null || !GameManager.Instance.IsPlaying)
+        {
+            _weaponSystem.StopShooting();
+            return;
+        }
+
         var kb    = Keyboard.current;
         var mouse = Mouse.current;
-        bool fire1Held     = (kb    != null && kb.leftCtrlKey.isPressed)        || (mouse != null && mouse.leftButton.isPressed);
-        bool fire1Released = (kb    != null && kb.leftCtrlKey.wasReleasedThisFrame) || (mouse != null && mouse.leftButton.wasReleasedThisFrame);
-        bool fire2Pressed  = (kb    != null && kb.leftAltKey.wasPressedThisFrame)   || (mouse != null && mouse.rightButton.wasPressedThisFrame);
+        var gp    = Gamepad.current;
+
+        // Disparo principal: Ctrl / clic izq / gatillo derecho (RT/R2) / botón Sur (A/Cruz)
+        bool fire1Held     = (kb    != null && kb.leftCtrlKey.isPressed)
+                          || (mouse != null && mouse.leftButton.isPressed)
+                          || (gp    != null && (gp.rightTrigger.IsActuated(0.1f) || gp.buttonSouth.isPressed));
+
+        bool fire1Released = (kb    != null && kb.leftCtrlKey.wasReleasedThisFrame)
+                          || (mouse != null && mouse.leftButton.wasReleasedThisFrame)
+                          || (gp    != null && (gp.rightTrigger.wasReleasedThisFrame || gp.buttonSouth.wasReleasedThisFrame));
+
+        // Cambiar arma: Alt / clic der / gatillo izquierdo (LT/L2) / bumper izquierdo (LB/L1)
+        bool fire2Pressed  = (kb    != null && kb.leftAltKey.wasPressedThisFrame)
+                          || (mouse != null && mouse.rightButton.wasPressedThisFrame)
+                          || (gp    != null && (gp.leftTrigger.wasPressedThisFrame || gp.leftShoulder.wasPressedThisFrame));
+
         if (fire1Held)     _weaponSystem.Shoot(shootPoint);
         if (fire1Released) _weaponSystem.StopShooting();
         if (fire2Pressed)  _weaponSystem.CycleWeapon();
 
-        bool bombPressed = kb != null && kb.spaceKey.wasPressedThisFrame;
+        // Bomba: Espacio / botón Norte (Y/Triángulo)
+        bool bombPressed = (kb != null && kb.spaceKey.wasPressedThisFrame)
+                        || (gp != null && gp.buttonNorth.wasPressedThisFrame);
         if (bombPressed)   PowerUpManager.Instance?.UseBomb();
     }
 
@@ -135,7 +182,7 @@ public class PlayerController : MonoBehaviour
         _currentHealth -= amount;
         AudioManager.Instance?.PlaySFX("player_hit");
         if (_currentHealth <= 0) Die();
-        else StartCoroutine(InvulnerabilityRoutine());
+        else StartInvulnerability();
     }
 
     // Un disparo enemigo equivale a perder 1 vida completa
@@ -157,6 +204,8 @@ public class PlayerController : MonoBehaviour
     {
         _isDead = true;
         _weaponSystem?.StopShooting();
+        _weaponSystem?.OnPlayerDied();
+        PowerUpManager.Instance?.RemoveDrones();
         _sr.color = new Color(_sr.color.r, _sr.color.g, _sr.color.b, 0f);
         AudioManager.Instance?.PlaySFX("player_death");
 
@@ -180,7 +229,14 @@ public class PlayerController : MonoBehaviour
         transform.position = spawnPosition;
         _sr.color          = new Color(_sr.color.r, _sr.color.g, _sr.color.b, 1f);
         if (playerExplosionChild != null) playerExplosionChild.SetActive(false);
-        StartCoroutine(InvulnerabilityRoutine());
+        StartInvulnerability();
+    }
+
+    // Cancela cualquier rutina anterior antes de arrancar una nueva
+    void StartInvulnerability()
+    {
+        if (_invulnerabilityCoroutine != null) StopCoroutine(_invulnerabilityCoroutine);
+        _invulnerabilityCoroutine = StartCoroutine(InvulnerabilityRoutine());
     }
 
     IEnumerator InvulnerabilityRoutine()
@@ -203,8 +259,9 @@ public class PlayerController : MonoBehaviour
     void OnTriggerEnter2D(Collider2D other)
     {
         // EnemyBullet: el daño lo gestiona EnemyBullet.OnTriggerEnter2D (TakeLifeDamage)
-        if (other.CompareTag("Enemy"))  TakeDamage(maxHealth);  // colisión directa = 1 vida
-        if (other.CompareTag("PowerUp")) other.gameObject.SetActive(false);
+        if      (other.CompareTag("Enemy"))   TakeDamage(maxHealth);  // colisión directa = 1 vida
+        else if (other.CompareTag("Wall"))    TakeDamage(maxHealth);  // colisión con pared = muerte
+        else if (other.CompareTag("PowerUp")) other.gameObject.SetActive(false);
     }
 
     public void SetInvulnerable(bool value) => _isInvulnerable = value;

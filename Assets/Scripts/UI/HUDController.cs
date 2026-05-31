@@ -5,20 +5,9 @@ using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using TMPro;
 
-public class HUDController : MonoBehaviour
+public class HUDController : Singleton<HUDController>
 {
-    public static HUDController Instance { get; private set; }
-
-    void Awake()
-    {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
-    }
-
-    void OnDestroy()
-    {
-        if (Instance == this) Instance = null;
-    }
+    protected override bool Persistent => false;
 
     [Header("Textos")]
     public TextMeshProUGUI txtScore;
@@ -76,9 +65,6 @@ public class HUDController : MonoBehaviour
     [Header("Barra de vida del boss")]
     public UnityEngine.UI.Slider bossHealthBar;
 
-    [Header("Debug / Test (F1 para activar)")]    
-    public GameObject hudGroup;
-
     [Header("Kamikaze Warning")]
     public GameObject warningPanel;
 
@@ -90,15 +76,20 @@ public class HUDController : MonoBehaviour
     public GameObject      pausePanel;
     public TextMeshProUGUI txtPause;
 
+    PauseGamepadHints _gamepadHints;
+
     Coroutine _scorePopRoutine;
     Coroutine _pauseBlinkRoutine;
     Coroutine _bossWarningRoutine;
+    bool      _gameOverShown;
+    bool      _bossWarningActive;
+    bool      _debugHudVisible = false;
     float _phaseTime;
     bool  _timerRunning;
+    int   _lastTimerSecs = -1;
     float _fpsTimer;
     int   _fpsFrames;
     float _fpsDisplay;
-    bool  _debugVisible;
 
     void Start()
     {
@@ -113,32 +104,35 @@ public class HUDController : MonoBehaviour
         if (bossWarningPanel  != null) bossWarningPanel.SetActive(false);
         if (pausePanel        != null) pausePanel.SetActive(false);
         if (bossHealthBar     != null) bossHealthBar.gameObject.SetActive(false);
+        if (txtFPS            != null) txtFPS.gameObject.SetActive(false);
+        if (txtTimer          != null) txtTimer.gameObject.SetActive(false);
         ResetTimer();
         StartTimer();
-
-        // Al inicio todo oculto y F1 lo activo para tests
-        _debugVisible = false;
-        SetDebugHudVisible(false);
     }
 
     void Update()
     {
-        UpdateFPS();
-
-        if (Keyboard.current != null && Keyboard.current.f1Key.wasPressedThisFrame)
+        if (UnityEngine.InputSystem.Keyboard.current != null &&
+            UnityEngine.InputSystem.Keyboard.current.f1Key.wasPressedThisFrame)
         {
-            _debugVisible = !_debugVisible;
-            SetDebugHudVisible(_debugVisible);
+            _debugHudVisible = !_debugHudVisible;
+            if (txtFPS   != null) txtFPS.gameObject.SetActive(_debugHudVisible);
+            if (txtTimer != null) txtTimer.gameObject.SetActive(_debugHudVisible && showTimer);
         }
+
+        UpdateFPS();
 
         if (!_timerRunning || !showTimer) return;
         if (GameManager.Instance != null && !GameManager.Instance.IsPlaying) return;
         _phaseTime += Time.deltaTime;
         if (txtTimer != null)
         {
-            int mins = (int)_phaseTime / 60;
-            int secs = (int)_phaseTime % 60;
-            txtTimer.text = string.Format("{0:00}:{1:00}", mins, secs);
+            int secs = (int)_phaseTime;
+            if (secs != _lastTimerSecs)
+            {
+                _lastTimerSecs = secs;
+                txtTimer.text  = string.Format("{0:00}:{1:00}", secs / 60, secs % 60);
+            }
         }
     }
 
@@ -159,16 +153,17 @@ public class HUDController : MonoBehaviour
     public void StartTimer()
     {
         _timerRunning = true;
-        if (txtTimer != null) txtTimer.gameObject.SetActive(showTimer);
+        // Visibilidad controlada exclusivamente por F1 (como FPS): no reactivar aquí.
     }
 
     public void StopTimer()  => _timerRunning = false;
 
     public void ResetTimer()
     {
-        _phaseTime = 0f;
+        _phaseTime     = 0f;
+        _lastTimerSecs = -1;
         if (txtTimer != null) txtTimer.text = "00:00";
-        if (txtTimer != null) txtTimer.gameObject.SetActive(showTimer);
+        // Visibilidad controlada exclusivamente por F1 (como FPS): no reactivar aquí.
     }
 
     public float PhaseTime => _phaseTime;
@@ -186,6 +181,7 @@ public class HUDController : MonoBehaviour
 
     public void UpdateLives(int currentLives)
     {
+        if (lifeIcons == null) return;
         for (int i = 0; i < lifeIcons.Length; i++)
         {
             if (lifeIcons[i] == null) continue;
@@ -193,7 +189,7 @@ public class HUDController : MonoBehaviour
             lifeIcons[i].gameObject.SetActive(show);
             if (show) lifeIcons[i].color = lifeActiveColor;
         }
-        
+
         // Animación en el último icono visible al perder una vida
         int lastIdx = currentLives - 1;
         if (lastIdx >= 0 && lastIdx < lifeIcons.Length && lifeIcons[lastIdx] != null)
@@ -209,6 +205,7 @@ public class HUDController : MonoBehaviour
     public void UpdateWeapon(string weaponName, int level)
     {
         if (txtWeapon != null) { txtWeapon.text = weaponName; txtWeapon.color = GetWeaponColor(weaponName); }
+        if (weaponPips == null) return;
         Color pipOn = GetWeaponColor(weaponName);
         for (int i = 0; i < weaponPips.Length; i++)
         {
@@ -231,6 +228,8 @@ public class HUDController : MonoBehaviour
 
     public void ShowGameOver()
     {
+        if (_gameOverShown) return;
+        _gameOverShown = true;
         StartCoroutine(GameOverSequence());
     }
 
@@ -245,14 +244,9 @@ public class HUDController : MonoBehaviour
             fadeImage.color = new Color(0, 0, 0, 0);
         }
 
-        yield return new WaitForSeconds(gameOverWait);
+        yield return new WaitForSecondsRealtime(gameOverWait);
 
-        // Para scroll y elimina enemigos y proyectiles de la pantalla
-        FindAnyObjectByType<ScrollManager>()?.PauseScroll();
-        EnemyManager em = FindAnyObjectByType<EnemyManager>();
-        if (em != null) { em.StopAllCoroutines(); em.enabled = false; }
-        foreach (var eh in FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None))
-            if (eh != null && eh.gameObject.activeSelf) eh.gameObject.SetActive(false);
+        // El juego sigue corriendo (scroll, enemigos, balas) — no paramos nada.
 
         // Fase 2: fundido a negro (1.5 s y cubre TODOS los layers)
         if (fadeImage != null)
@@ -309,8 +303,9 @@ public class HUDController : MonoBehaviour
                 ? "PRESS SPACE / FIRE TO CONTINUE"
                 : "";
 
-        float timeLeft = gameOverCountdown;
+        float timeLeft       = gameOverCountdown;
         bool  continuePressed = false;
+        int   lastSecSpoken  = -1;
 
         while (timeLeft > 0f)
         {
@@ -318,10 +313,25 @@ public class HUDController : MonoBehaviour
             int secs = Mathf.CeilToInt(Mathf.Max(timeLeft, 0f));
             if (txtCountdown != null) txtCountdown.text = secs.ToString();
 
-            if (hasContinues && Keyboard.current != null &&
-                (Keyboard.current.spaceKey.wasPressedThisFrame ||
-                 Keyboard.current.zKey.wasPressedThisFrame     ||
-                 Keyboard.current.enterKey.wasPressedThisFrame))
+            // Voz de cuenta atrás: dispara el clip correspondiente cada vez que cambia el segundo.
+            if (secs != lastSecSpoken && secs >= 1 && secs <= 10)
+            {
+                AudioManager.Instance?.PlayCountdownNumber(secs);
+                lastSecSpoken = secs;
+            }
+
+            bool kbContinue = Keyboard.current != null &&
+                              (Keyboard.current.spaceKey.wasPressedThisFrame ||
+                               Keyboard.current.zKey.wasPressedThisFrame     ||
+                               Keyboard.current.enterKey.wasPressedThisFrame);
+
+            var  gp         = Gamepad.current;
+            bool gpContinue = gp != null &&
+                              (gp.buttonSouth.wasPressedThisFrame  ||
+                               gp.buttonNorth.wasPressedThisFrame  ||
+                               gp.startButton.wasPressedThisFrame);
+
+            if (hasContinues && (kbContinue || gpContinue))
             {
                 continuePressed = true;
                 break;
@@ -338,6 +348,8 @@ public class HUDController : MonoBehaviour
         }
         else
         {
+            // Locución final "zero" justo antes de volver a la pantalla de título.
+            AudioManager.Instance?.PlayCountdownNumber(0);
             GameManager.Instance?.GoToTitleScreen();
         }
     }
@@ -358,6 +370,18 @@ public class HUDController : MonoBehaviour
                 else if (txtScoreLabel    == null && (GOHas(n,"Label") || GOHas(n,"ScoreLabel"))) txtScoreLabel = tmp;
                 else if (txtFinalScore    == null && (GOHas(n,"Score") || GOHas(n,"Final") || GOHas(n,"Value"))) txtFinalScore = tmp;
             }
+
+            // Fondo de la tarjeta: primer Image hijo que no sea el panel raíz
+            if (_gameOverBg == null)
+            {
+                foreach (var img in gameOverPanel.GetComponentsInChildren<Image>(true))
+                {
+                    if (img.gameObject != gameOverPanel) { _gameOverBg = img; panelT = img.transform; break; }
+                }
+                // Si el panel en escena no tiene sub-card, el fondo es el propio panel
+                if (_gameOverBg == null)
+                    _gameOverBg = gameOverPanel.GetComponent<Image>();
+            }
         }
         else
         {
@@ -371,7 +395,7 @@ public class HUDController : MonoBehaviour
             StretchFull(root.AddComponent<RectTransform>());
             gameOverPanel = root;
 
-            // Tarjeta centrada con fondo oscuro con mismas proporciones que el ResultPanel del StageClear
+            // Tarjeta centrada con fondo oscuro
             var card   = new GameObject("Card");
             var cardRT = card.AddComponent<RectTransform>();
             cardRT.SetParent(root.transform, false);
@@ -386,54 +410,102 @@ public class HUDController : MonoBehaviour
             panelT = card.transform;
         }
 
-        //  Título
-        if (txtGameOverTitle == null)
-            txtGameOverTitle = MakeGOTMP("TxtGameOverTitle", panelT,
-                new Vector2(0f, 0.76f), new Vector2(1f, 1.00f),
-                "GAME OVER", 72f, new Color(1f, 0.9f, 0.1f),
-                TextAlignmentOptions.Center, FontStyles.Bold);
-
-        // Fila SCORE
-        if (txtScoreLabel == null)
-            txtScoreLabel = MakeGOTMP("TxtScoreLabel", panelT,
-                new Vector2(0.05f, 0.58f), new Vector2(0.50f, 0.74f),
-                "FINAL SCORE", 26f, Color.white,
-                TextAlignmentOptions.MidlineRight, FontStyles.Normal);
-
-        if (txtFinalScore == null)
-            txtFinalScore = MakeGOTMP("TxtFinalScore", panelT,
-                new Vector2(0.52f, 0.58f), new Vector2(0.95f, 0.74f),
-                "00000000", 30f, new Color(1f, 0.9f, 0.1f),
-                TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
-        else
+        // Asegura que la card esté centrada y a tamaño correcto (mismas proporciones que el PausePanel.ContentBg)
+        if (_gameOverBg != null && _gameOverBg.gameObject != gameOverPanel)
         {
-            var rt = txtFinalScore.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.52f, 0.58f);
-            rt.anchorMax = new Vector2(0.95f, 0.74f);
-            rt.offsetMin = rt.offsetMax = Vector2.zero;
-            txtFinalScore.alignment = TextAlignmentOptions.MidlineLeft;
+            var cardRT   = _gameOverBg.GetComponent<RectTransform>();
+            cardRT.anchorMin = new Vector2(0.22f, 0.18f);
+            cardRT.anchorMax = new Vector2(0.78f, 0.72f);
+            cardRT.offsetMin = cardRT.offsetMax = Vector2.zero;
+            panelT = _gameOverBg.transform;
         }
 
-        // Fila CONTINUES
+        Transform rootT = gameOverPanel.transform;
+
+        // ── "GAME OVER" — FUERA del card, ARRIBA en pantalla, GRANDE ─────────
+        if (txtGameOverTitle == null)
+            txtGameOverTitle = MakeGOTMP("TxtGameOverTitle", rootT,
+                new Vector2(0f, 0.78f), new Vector2(1f, 0.95f),
+                "GAME OVER", 120f, new Color(1f, 0.9f, 0.1f),
+                TextAlignmentOptions.Center, FontStyles.Bold);
+        else
+        {
+            ApplyGOLayout(txtGameOverTitle, rootT,
+                new Vector2(0f, 0.78f), new Vector2(1f, 0.95f),
+                TextAlignmentOptions.Center, FontStyles.Bold);
+            txtGameOverTitle.fontSize = 120f;
+            txtGameOverTitle.color    = new Color(1f, 0.9f, 0.1f);
+        }
+
+        // ── FINAL SCORE label (dentro del card, arriba) ──────────────────────
+        if (txtScoreLabel == null)
+            txtScoreLabel = MakeGOTMP("TxtScoreLabel", panelT,
+                new Vector2(0f, 0.72f), new Vector2(1f, 0.88f),
+                "FINAL SCORE", 42f, new Color(0.85f, 0.85f, 0.85f, 1f),
+                TextAlignmentOptions.Center, FontStyles.Normal);
+        else
+        {
+            ApplyGOLayout(txtScoreLabel, panelT,
+                new Vector2(0f, 0.72f), new Vector2(1f, 0.88f),
+                TextAlignmentOptions.Center, FontStyles.Normal);
+            txtScoreLabel.fontSize = 42f;
+        }
+
+        // ── Valor del score (centro card, MUY grande) ────────────────────────
+        if (txtFinalScore == null)
+            txtFinalScore = MakeGOTMP("TxtFinalScore", panelT,
+                new Vector2(0f, 0.48f), new Vector2(1f, 0.72f),
+                "00000000", 84f, new Color(1f, 0.9f, 0.1f),
+                TextAlignmentOptions.Center, FontStyles.Bold);
+        else
+        {
+            ApplyGOLayout(txtFinalScore, panelT,
+                new Vector2(0f, 0.48f), new Vector2(1f, 0.72f),
+                TextAlignmentOptions.Center, FontStyles.Bold);
+            txtFinalScore.fontSize = 84f;
+        }
+
+        // ── CONTINUES (dentro del card, subido) ──────────────────────────────
         if (txtContinuesLeft == null)
             txtContinuesLeft = MakeGOTMP("TxtContinuesLeft", panelT,
-                new Vector2(0f, 0.40f), new Vector2(1f, 0.56f),
-                "CONTINUES: 3", 26f, new Color(0.4f, 0.9f, 1f),
+                new Vector2(0f, 0.40f), new Vector2(1f, 0.54f),
+                "CONTINUES: 3", 40f, new Color(0.4f, 0.9f, 1f),
                 TextAlignmentOptions.Center, FontStyles.Normal);
+        else
+        {
+            ApplyGOLayout(txtContinuesLeft, panelT,
+                new Vector2(0f, 0.40f), new Vector2(1f, 0.54f),
+                TextAlignmentOptions.Center, FontStyles.Normal);
+            txtContinuesLeft.fontSize = 40f;
+        }
 
-        // Prompt
+        // ── Prompt (dentro del card, subido) ────────────────────────────────
         if (txtContinuePrompt == null)
             txtContinuePrompt = MakeGOTMP("TxtContinuePrompt", panelT,
-                new Vector2(0f, 0.22f), new Vector2(1f, 0.38f),
-                "PRESS SPACE / FIRE TO CONTINUE", 20f, new Color(1f, 1f, 0.5f),
+                new Vector2(0f, 0.26f), new Vector2(1f, 0.40f),
+                "PRESS SPACE / FIRE TO CONTINUE", 32f, new Color(1f, 1f, 0.5f),
                 TextAlignmentOptions.Center, FontStyles.Normal);
+        else
+        {
+            ApplyGOLayout(txtContinuePrompt, panelT,
+                new Vector2(0f, 0.26f), new Vector2(1f, 0.40f),
+                TextAlignmentOptions.Center, FontStyles.Normal);
+            txtContinuePrompt.fontSize = 32f;
+        }
 
-        // Cuenta atrás
+        // ── Cuenta atrás DENTRO del card, parte baja, GRANDE ────────────────
         if (txtCountdown == null)
             txtCountdown = MakeGOTMP("TxtCountdown", panelT,
-                new Vector2(0.35f, 0.02f), new Vector2(0.65f, 0.20f),
-                "10", 64f, Color.white,
+                new Vector2(0.35f, 0.04f), new Vector2(0.65f, 0.24f),
+                "10", 96f, Color.white,
                 TextAlignmentOptions.Center, FontStyles.Bold);
+        else
+        {
+            ApplyGOLayout(txtCountdown, panelT,
+                new Vector2(0.35f, 0.04f), new Vector2(0.65f, 0.24f),
+                TextAlignmentOptions.Center, FontStyles.Bold);
+            txtCountdown.fontSize = 96f;
+        }
 
         gameOverPanel.SetActive(false);
     }
@@ -458,10 +530,29 @@ public class HUDController : MonoBehaviour
         return tmp;
     }
 
+    // Reposiciona y realinea un TextMeshProUGUI existente (panel de escena)
+    void ApplyGOLayout(TextMeshProUGUI tmp, Transform parent,
+        Vector2 anchorMin, Vector2 anchorMax,
+        TextAlignmentOptions align, FontStyles style)
+    {
+        if (tmp == null) return;
+        tmp.transform.SetParent(parent, false);
+        var rt       = tmp.GetComponent<RectTransform>();
+        rt.anchorMin = anchorMin;
+        rt.anchorMax = anchorMax;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+        tmp.alignment = align;
+        tmp.fontStyle = style;
+    }
+
     static bool GOHas(string name, string token) =>
         name.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0;
 
-    public void HideGameOver() => gameOverPanel?.SetActive(false);
+    public void HideGameOver()
+    {
+        _gameOverShown = false;
+        gameOverPanel?.SetActive(false);
+    }
 
     // Kamikaze Warning
     public void ShowKamikazeWarning()
@@ -483,33 +574,30 @@ public class HUDController : MonoBehaviour
     // Boss Warning
     public void StartBossWarning()
     {
-        // Paramos todo
+        _bossWarningActive = false; // detiene iteración anterior si la hubiera
         if (_bossWarningRoutine != null) StopCoroutine(_bossWarningRoutine);
 
-        // Activamos el panel y la rutina
         if (bossWarningPanel != null) bossWarningPanel.SetActive(true);
         _bossWarningRoutine = StartCoroutine(BlinkBossWarning());
 
-        // Efecto de sonido del Warning
         AudioManager.Instance?.PlayWarningSFX();
     }
 
     public void StopBossWarning()
     {
-        // Fin del Warning
+        _bossWarningActive = false;
         if (_bossWarningRoutine != null) { StopCoroutine(_bossWarningRoutine); _bossWarningRoutine = null; }
 
-        //Hacemos desaparecer el panel
         if (txtBossWarning   != null) txtBossWarning.alpha = 1f;
         if (bossWarningPanel != null) bossWarningPanel.SetActive(false);
 
-        // Quitamos el efecto de sonido
         AudioManager.Instance?.StopWarningSFX();
     }
 
     IEnumerator BlinkBossWarning()
     {
-        while (true)
+        _bossWarningActive = true;
+        while (_bossWarningActive)
         {
             if (txtBossWarning != null) txtBossWarning.alpha = 1f;
             yield return new WaitForSeconds(0.25f);
@@ -521,7 +609,15 @@ public class HUDController : MonoBehaviour
     // Pausa
     public void ShowPause()
     {
-        if (pausePanel != null) pausePanel.SetActive(true);
+        if (pausePanel != null)
+        {
+            pausePanel.SetActive(true);
+
+            // Hints de mando: se crea una sola vez y se reutiliza
+            if (_gamepadHints == null)
+                _gamepadHints = pausePanel.AddComponent<PauseGamepadHints>();
+            _gamepadHints.Show();
+        }
         if (_pauseBlinkRoutine != null) StopCoroutine(_pauseBlinkRoutine);
         if (txtPause != null) _pauseBlinkRoutine = StartCoroutine(BlinkPauseText());
     }
@@ -530,6 +626,7 @@ public class HUDController : MonoBehaviour
     {
         if (_pauseBlinkRoutine != null) { StopCoroutine(_pauseBlinkRoutine); _pauseBlinkRoutine = null; }
         if (txtPause  != null) txtPause.alpha = 1f;
+        _gamepadHints?.Hide();
         if (pausePanel != null) pausePanel.SetActive(false);
     }
 
@@ -570,12 +667,12 @@ public class HUDController : MonoBehaviour
         Vector3 originalScale = target.localScale;
         float t = 0f;
 
-        // El tiempo del punch
+        // Usamos unscaledDeltaTime para que funcione aunque timeScale sea 0
         while (t < 0.2f)
         {
             float s = 1f + Mathf.Sin(t / 0.2f * Mathf.PI) * 0.25f;
             target.localScale = originalScale * s;
-            t += Time.deltaTime;
+            t += Time.unscaledDeltaTime;
             yield return null;
         }
         target.localScale = originalScale;
@@ -584,7 +681,6 @@ public class HUDController : MonoBehaviour
     // Oculta todos los elementos del HUD de juego antes para Stage Clear
     public void HideGameHUD()
     {
-        if (hudGroup       != null) hudGroup.SetActive(false);
         if (txtTimer       != null) txtTimer.gameObject.SetActive(false);
         if (txtFPS         != null) txtFPS.gameObject.SetActive(false);
         if (txtScore       != null) txtScore.gameObject.SetActive(false);
@@ -598,14 +694,6 @@ public class HUDController : MonoBehaviour
             if (icon != null) icon.gameObject.SetActive(false);
         foreach (var pip in weaponPips)
             if (pip != null) pip.gameObject.SetActive(false);
-    }
-
-    //  Debug / Test (F1)
-    void SetDebugHudVisible(bool visible)
-    {
-        if (hudGroup  != null) hudGroup.SetActive(visible);
-        if (txtTimer  != null) txtTimer.gameObject.SetActive(visible && showTimer);
-        if (txtFPS    != null) txtFPS.gameObject.SetActive(visible);
     }
 
     // Barra de vida del boss

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using TMPro;
 
 public class MainMenuController : MonoBehaviour
@@ -7,6 +8,11 @@ public class MainMenuController : MonoBehaviour
     [Header("UI")]
     public TextMeshProUGUI hiScoreText;
     public GameObject      optionsPanel;
+
+    [Header("Botones del menú principal")]
+    public Button btnPlay;
+    public Button btnOptions;
+    public Button btnQuit;
 
     void Start()
     {
@@ -34,18 +40,31 @@ public class MainMenuController : MonoBehaviour
     {
         PlayButtonSound();
         if (optionsPanel != null) optionsPanel.SetActive(true);
+        SetMainButtonsInteractable(false);
     }
 
     public void CloseOptions()
     {
         PlayButtonSound();
         optionsPanel?.SetActive(false);
+        SetMainButtonsInteractable(true);
+    }
+
+    void SetMainButtonsInteractable(bool interactable)
+    {
+        if (btnPlay    != null) btnPlay.interactable    = interactable;
+        if (btnOptions != null) btnOptions.interactable = interactable;
+        if (btnQuit    != null) btnQuit.interactable    = interactable;
     }
 
     public void QuitGame()
     {
         PlayButtonSound();
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
         Application.Quit();
+#endif
     }
 
     void PlayButtonSound() => AudioManager.Instance?.PlaySFX("menu_confirm");

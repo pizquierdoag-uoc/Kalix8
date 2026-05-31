@@ -40,7 +40,8 @@ public class EnemyHealth : MonoBehaviour
     {
         if (_isDead) return;
 
-        _currentHealth -= amount;
+        int scaled = Mathf.Max(1, Mathf.RoundToInt(amount * GameSettings.PlayerDamageMult));
+        _currentHealth -= scaled;
         AudioManager.Instance?.PlaySFX("enemy_hit");
 
         if (_currentHealth <= 0) Die();
@@ -56,8 +57,11 @@ public class EnemyHealth : MonoBehaviour
         if (deathEffect != null)
             deathEffect.Play();
 
+        // Warning solo en Editor — ExplosionEffect.Spawn maneja null correctamente
+#if UNITY_EDITOR
         if (explosionPrefab == null)
             Debug.LogWarning("[EnemyHealth] explosionPrefab no asignado en " + gameObject.name);
+#endif
         ExplosionEffect.Spawn(explosionPrefab, transform.position);
 
         TryDropPowerUp();

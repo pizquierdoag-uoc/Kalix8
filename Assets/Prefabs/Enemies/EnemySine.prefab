@@ -146,7 +146,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
   maxHealth: 2
-  scoreValue: 100
+  scoreValue: 200
   dropChance: 0.18
   dropPrefabs: []
   hitEffect: {fileID: 0}

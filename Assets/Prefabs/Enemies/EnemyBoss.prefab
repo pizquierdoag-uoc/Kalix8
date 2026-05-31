@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 1}
+  m_LocalScale: {x: 4.5, y: 4.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -85,7 +85,7 @@ SpriteRenderer:
   m_SortingLayer: 2
   m_SortingOrder: 9
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -1383768527588444868, guid: c7c8431c9419298469fbdc2ceec2c939, type: 3}
+  m_Sprite: {fileID: -2428330863197254518, guid: 24664e463fd67984fab33f3c955f73ab, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -145,7 +145,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossController
   maxHealth: 200
-  scoreValue: 50000
+  scoreValue: 10000
   entrySpeed: 3
   entryTargetX: 4
   bobAmplitude: 2.5
@@ -155,6 +155,8 @@ MonoBehaviour:
   fireRatePhase1: 1.5
   fireRatePhase2: 0.6
   healthBar: {fileID: 0}
+  explosionPrefab: {fileID: 5505029368625499899, guid: 8a4e5fb783d4b3d4fb282ae4bb3044b9, type: 3}
+  explosionScale: 5
 --- !u!114 &6230329397091628609
 MonoBehaviour:
   m_ObjectHideFlags: 0

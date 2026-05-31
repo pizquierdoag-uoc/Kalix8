@@ -27,8 +27,9 @@ public class FrameAnimator : MonoBehaviour
     {
         if (!_playing || frames == null || frames.Length == 0) return;
 
+        float safeFps = Mathf.Max(fps, 1f);
         _timer += Time.deltaTime;
-        if (_timer < 1f / fps) return;
+        if (_timer < 1f / safeFps) return;
 
         _timer = 0f;
         _current++;
@@ -52,4 +53,13 @@ public class FrameAnimator : MonoBehaviour
     public void Play()  { _current = 0; _timer = 0f; _playing = true; }
     public void Stop()  { _playing = false; }
     public bool IsDone  => !_playing && !loop;
+
+    public void SetFrames(Sprite[] newFrames)
+    {
+        frames   = newFrames;
+        _current = 0;
+        _timer   = 0f;
+        if (_sr != null && frames != null && frames.Length > 0)
+            _sr.sprite = frames[0];
+    }
 }

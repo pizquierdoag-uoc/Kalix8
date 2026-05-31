@@ -17,6 +17,9 @@ public class EnemyManager : MonoBehaviour
     public float spawnMinY = -3.5f;
     public float spawnMaxY =  3.5f;
 
+    [Tooltip("Distancia mínima entre enemigos al aparecer. Si otro enemigo está más cerca que esto del punto de spawn, el nuevo se empuja a la derecha para que entren espaciados.")]
+    public float spawnMinSpacing = 1.8f;
+
     [Header("Power-ups")]
     public GameObject[] powerUpPrefabs;
 
@@ -30,20 +33,91 @@ public class EnemyManager : MonoBehaviour
     public TextMeshProUGUI txtPhaseWarning;
 
     bool _bossSpawned;
+    bool _paused;              // flag para bloquear Update sin tocar enabled ni el coroutine
     Coroutine _stageCoroutine;
+    // Índice de la fase actual (0..4). Se conserva entre Game Over y Continue
+    // para poder retomar la partida desde la misma fase en la que el jugador murió.
+    int _currentPhase;
+    public int CurrentPhase => _currentPhase;
+    const int LAST_PHASE = 4;
 
     // Escala un intervalo de tiempo según la dificultad actual
     float S(float t) => t * GameSettings.SpawnIntervalMult;
 
+    // Alternativa a WaitForSeconds que sobrevive correctamente al ciclo timeScale=0→1.
+    // WaitForSeconds puede no reanudarse en Unity 6 tras volver de timeScale=0;
+    // este helper cuenta el tiempo con Time.deltaTime (que es 0 cuando timeScale=0)
+    // y usa yield return null (que siempre dispara cada frame).
+    IEnumerator WaitGame(float seconds)
+    {
+        float elapsed = 0f;
+        while (elapsed < seconds)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+    }
+
+    void Awake()
+    {
+        // Recalcula el rango de spawn desde la cámara usando el mismo padding que EnemyBase
+        Camera cam = Camera.main;
+        if (cam != null)
+        {
+            float halfH   = cam.orthographicSize;
+            float padding = 1.0f;   // debe coincidir con EnemyBase.boundsPaddingY
+            spawnMinY = cam.transform.position.y - halfH + padding;
+            spawnMaxY = cam.transform.position.y + halfH - padding;
+        }
+    }
+
     void Start()
     {
         if (txtPhaseWarning != null) txtPhaseWarning.text = "";
-        _stageCoroutine = StartCoroutine(StageSequence());
+        _currentPhase   = 0;
+        _stageCoroutine = StartCoroutine(InitialDelayAndStart());
     }
 
     void Update()
     {
+        if (_paused) return;
         if (Keyboard.current != null && Keyboard.current.f2Key.wasPressedThisFrame) SkipToBoss();
+    }
+
+    /// <summary>
+    /// Congela el spawn sin matar el coroutine: Time.timeScale=0 pausa los
+    /// WaitForSeconds, así que al restaurar el tiempo el coroutine retoma
+    /// exactamente donde estaba (mismo punto de oleada, mismo boss si estaba vivo).
+    /// Usamos un flag en lugar de enabled=false para no cancelar los WaitForSeconds
+    /// en coroutines activas (comportamiento de Unity 6).
+    /// </summary>
+    public void PauseStage()
+    {
+        _paused = true;
+    }
+
+    /// <summary>Reactiva el spawn tras un Continue.</summary>
+    public void UnpauseStage()
+    {
+        _paused = false;
+    }
+
+    /// <summary>Reinicio total: vuelve a la fase 0 con la pausa inicial. (Uso: nueva partida.)</summary>
+    public void RestartStage()
+    {
+        if (_stageCoroutine != null) StopCoroutine(_stageCoroutine);
+        _bossSpawned    = false;
+        _currentPhase   = 0;
+        _stageCoroutine = StartCoroutine(InitialDelayAndStart());
+    }
+
+    /// <summary>Retoma la partida desde la fase en la que estaba al perder. (Uso: Continue.)</summary>
+    public void ResumeStage()
+    {
+        if (_stageCoroutine != null) StopCoroutine(_stageCoroutine);
+        _bossSpawned    = false;   // el boss fue destruido en el Game Over: re-spawnea si toca
+        int phase       = Mathf.Clamp(_currentPhase, 0, LAST_PHASE);
+        _stageCoroutine = StartCoroutine(RunPhase(phase));
     }
 
     public void SkipToBoss()
@@ -61,131 +135,170 @@ public class EnemyManager : MonoBehaviour
         HUDController.Instance?.HideKamikazeWarning();
         if (txtPhaseWarning != null) { txtPhaseWarning.text = ""; txtPhaseWarning.alpha = 1f; }
 
-        _stageCoroutine = StartCoroutine(BossRun());
+        _currentPhase   = LAST_PHASE;
+        _stageCoroutine = StartCoroutine(RunPhase(LAST_PHASE));
     }
 
-    IEnumerator BossRun()
+    IEnumerator InitialDelayAndStart()
     {
-        // Para ir directamente al boss
-        yield return BossWarningSequence();
-        yield return Phase5_Boss();
+        // Pausa inicial para que el jugador se oriente (solo en partida nueva, no en Continue)
+        yield return WaitGame(3f);
+        _stageCoroutine = StartCoroutine(RunPhase(0));
     }
 
-    IEnumerator StageSequence()
+    /// <summary>
+    /// Ejecuta una fase concreta y, al terminar, encadena automáticamente la siguiente.
+    /// Cada fase es atómica: si el jugador muere y pulsa Continue, ResumeStage llama
+    /// a RunPhase con el índice guardado, replanteando la fase desde su inicio.
+    /// </summary>
+    IEnumerator RunPhase(int phase)
     {
-        // Pausa inicial para que el jugador se oriente ponemos 3 segundos
-        yield return new WaitForSeconds(3f);
+        _currentPhase = phase;
 
-        yield return ShowWarning("FASE 1", 2f);
+        switch (phase)
+        {
+            case 0:
+                // Fase 1: enemigos normales + power-ups de fase
+                yield return ShowWarning("FASE 1", 2f);
+                yield return Phase1_NormalEnemies();
+                yield return SpawnPhaseEndPowerUps();
+                yield return WaitGame(2f);
+                break;
 
-        // Fase 1
-        yield return Phase1_NormalEnemies();
+            case 1:
+                // Fase 2: oleada de kamikazes + power-ups de fase
+                yield return KamikazeWarningSequence();
+                yield return PhaseKamikazes(total: 60, groupSize: 9,
+                                            intraDelay: 0.35f,
+                                            pauseFirst: S(3.5f), pauseSecond: S(2f),
+                                            halfAt: 30, speedMult: GameSettings.KamikazeSpeedMult);
+                yield return SpawnPhaseEndPowerUps();
+                yield return WaitGame(2f);
+                break;
 
-        // Soltamos powerups
-        yield return SpawnPowerUpWave(3);
-        yield return new WaitForSeconds(2f);
+            case 2:
+                // Fase 3: enemigos normales agresivos + power-ups de fase
+                yield return ShowWarning("FASE 3", 2f);
+                yield return Phase3_NormalEnemiesAggressive();
+                yield return SpawnPhaseEndPowerUps();
+                yield return WaitGame(2f);
+                break;
 
-        // Fase 2 Kamikazes
-        yield return KamikazeWarningSequence();
-        yield return PhaseKamikazes(total: 60, groupSize: 9,
-                                    intraDelay: 0.35f,
-                                    pauseFirst: S(3.5f), pauseSecond: S(2f),
-                                    halfAt: 30, speedMult: 3f);
+            case 3:
+                // Fase 4: segunda oleada de kamikazes + power-ups de fase
+                yield return KamikazeWarningSequence();
+                yield return PhaseKamikazes(total: 45, groupSize: 9,
+                                            intraDelay: 0.25f,
+                                            pauseFirst: S(1.5f), pauseSecond: S(1.5f),
+                                            halfAt: 999, speedMult: GameSettings.KamikazeSpeedMult);
+                yield return SpawnPhaseEndPowerUps();
+                yield return WaitGame(2f);
+                break;
 
-        // Fase 3
-        yield return ShowWarning("FASE 3", 2f);
-        yield return Phase3_NormalEnemiesAggressive();
+            case 4:
+                // Fase 5: Boss final (última fase, no encadena)
+                yield return BossWarningSequence();
+                yield return Phase5_Boss();
+                yield break;
+        }
 
-        // Soltamos powerups
-        yield return SpawnPowerUpWave(3);
-        yield return new WaitForSeconds(2f);
-
-        // Fase 4 Kamikazes
-        yield return KamikazeWarningSequence();
-        yield return PhaseKamikazes(total: 45, groupSize: 9,
-                                    intraDelay: 0.25f,
-                                    pauseFirst: S(1.5f), pauseSecond: S(1.5f),
-                                    halfAt: 999, speedMult: 3f);
-
-        // Fase 5 Boss
-        yield return BossWarningSequence();
-        yield return Phase5_Boss();
+        // Encadena la siguiente fase automáticamente
+        _stageCoroutine = StartCoroutine(RunPhase(phase + 1));
     }
 
     IEnumerator Phase1_NormalEnemies()
     {
-        // Fase 1
+        // --- OLA 1: Tren de exploración — 5 Linears en cadena central ---
+        for (int i = 0; i < 5; i++)
+        {
+            SpawnAt(prefabLinear, 0f);
+            yield return WaitGame(S(0.35f));
+        }
+        yield return WaitGame(S(3f));
 
-        // Ola 1: Linear solitario en el centro para primer contacto
-        SpawnAt(prefabLinear, 0f);
-        yield return new WaitForSeconds(S(2.5f));
+        // --- OLA 2: Pinza vertical — Linears que se cierran desde bordes ---
+        SpawnAt(prefabLinear,  3.0f);
+        SpawnAt(prefabLinear, -3.0f);
+        yield return WaitGame(S(0.5f));
+        SpawnAt(prefabLinear,  1.5f);
+        SpawnAt(prefabLinear, -1.5f);
+        yield return WaitGame(S(3f));
 
-        // Ola 2: Par simétrico de Linears arriba y abajo
+        // --- OLA 3: Doble onda — 2 Sines simultáneos en sentidos opuestos ---
+        SpawnAt(prefabSine,  2.0f);
+        SpawnAt(prefabSine, -2.0f);
+        yield return WaitGame(S(3.5f));
+
+        // --- OLA 4: Cortina diagonal — 5 Sines en cascada arriba→abajo ---
+        SpawnAt(prefabSine,  3.5f);
+        yield return WaitGame(S(0.4f));
+        SpawnAt(prefabSine,  1.75f);
+        yield return WaitGame(S(0.4f));
+        SpawnAt(prefabSine,  0f);
+        yield return WaitGame(S(0.4f));
+        SpawnAt(prefabSine, -1.75f);
+        yield return WaitGame(S(0.4f));
+        SpawnAt(prefabSine, -3.5f);
+        yield return WaitGame(S(3.5f));
+
+        // --- OLA 5: Francotirador con escolta — Shooter central + Linears flancos ---
+        SpawnAt(prefabShooter, 0f);
+        yield return WaitGame(S(0.8f));
         SpawnAt(prefabLinear,  2.5f);
         SpawnAt(prefabLinear, -2.5f);
-        yield return new WaitForSeconds(S(3f));
+        yield return WaitGame(S(4f));
 
-        // Ola 3: Fila de 3 Linears equidistantes 
-        SpawnAt(prefabLinear,  2.3f);
-        yield return new WaitForSeconds(0.4f);
-        SpawnAt(prefabLinear,  0f);
-        yield return new WaitForSeconds(0.4f);
-        SpawnAt(prefabLinear, -2.3f);
-        yield return new WaitForSeconds(S(3f));
-
-        // Ola 4: Par simétrico de Sines perimera vez tipo Sine
-        SpawnAt(prefabSine,  2f);
-        SpawnAt(prefabSine, -2f);
-        yield return new WaitForSeconds(S(3.5f));
-
-        // Ola 5: Formación en V — Linears exteriores + Sine al centro
-        SpawnAt(prefabLinear,  3f);
-        SpawnAt(prefabLinear, -3f);
-        yield return new WaitForSeconds(0.5f);
-        SpawnAt(prefabSine, 0f);
-        yield return new WaitForSeconds(S(3.5f));
-
-        // Ola 6: Cascada diagonal de 4 Sines (arriba → abajo)
-        SpawnAt(prefabSine,  3f);
-        yield return new WaitForSeconds(0.5f);
-        SpawnAt(prefabSine,  1f);
-        yield return new WaitForSeconds(0.5f);
-        SpawnAt(prefabSine, -1f);
-        yield return new WaitForSeconds(0.5f);
-        SpawnAt(prefabSine, -3f);
-        yield return new WaitForSeconds(S(3.5f));
-
-        // Ola 7: 2 Linears flanqueando + 1 Shooter central — presentación del Shooter
-        SpawnAt(prefabLinear,  2f);
-        SpawnAt(prefabLinear, -2f);
-        yield return new WaitForSeconds(0.6f);
-        SpawnAt(prefabShooter, 0f);
-        yield return new WaitForSeconds(S(4f));
-
-        // Ola 8: Doble par de Linears (exterior → interior en rápida sucesión)
-        SpawnAt(prefabLinear,  3f);
-        SpawnAt(prefabLinear, -3f);
-        yield return new WaitForSeconds(0.5f);
-        SpawnAt(prefabLinear,  1.2f);
-        SpawnAt(prefabLinear, -1.2f);
-        yield return new WaitForSeconds(S(3.5f));
-
-        // Ola 9: 2 Shooters simétricos + Sine central
-        SpawnAt(prefabShooter,  2.2f);
-        SpawnAt(prefabShooter, -2.2f);
-        yield return new WaitForSeconds(0.6f);
-        SpawnAt(prefabSine, 0f);
-        yield return new WaitForSeconds(S(4f));
-
-        // Ola 10 (cierre fase 1): Abanico de 5 Linears — centro primero, expandiéndose
+        // --- OLA 6: Flecha inversa — V de 5 Linears que se abre de dentro a fuera ---
         SpawnAt(prefabLinear, 0f);
-        yield return new WaitForSeconds(0.3f);
-        SpawnAt(prefabLinear,  1.8f);
-        SpawnAt(prefabLinear, -1.8f);
-        yield return new WaitForSeconds(0.3f);
+        yield return WaitGame(S(0.3f));
+        SpawnAt(prefabLinear,  1.5f);
+        SpawnAt(prefabLinear, -1.5f);
+        yield return WaitGame(S(0.3f));
+        SpawnAt(prefabLinear,  3.0f);
+        SpawnAt(prefabLinear, -3.0f);
+        yield return WaitGame(S(3.5f));
+
+        // --- OLA 7: Doble Shooter con cobertura de Sines ---
+        SpawnAt(prefabShooter,  2.5f);
+        SpawnAt(prefabShooter, -2.5f);
+        yield return WaitGame(S(0.6f));
+        SpawnAt(prefabSine,  3.2f);
+        SpawnAt(prefabSine, -3.2f);
+        yield return WaitGame(S(3.5f));
+
+        // --- OLA 8: Presión cruzada — Shooters bombardean + Sines ondean desde extremos ---
+        SpawnAt(prefabShooter,  1.5f);
+        SpawnAt(prefabShooter, -1.5f);
+        yield return WaitGame(S(1.0f));
+        SpawnAt(prefabSine,  3.0f);
+        SpawnAt(prefabSine, -3.0f);
+        yield return WaitGame(S(4f));
+
+        // --- OLA 9: Muro escalonado — Linears exteriores + Shooter + Sine central ---
         SpawnAt(prefabLinear,  3.2f);
         SpawnAt(prefabLinear, -3.2f);
-        yield return new WaitForSeconds(S(3f));
+        yield return WaitGame(S(0.4f));
+        SpawnAt(prefabShooter,  1.5f);
+        SpawnAt(prefabShooter, -1.5f);
+        yield return WaitGame(S(0.4f));
+        SpawnAt(prefabSine, 0f);
+        yield return WaitGame(S(3.5f));
+
+        // --- OLA 10: Gran formación final — los 3 tipos en secuencia escalonada ---
+        SpawnAt(prefabShooter, 0f);                         // ancla central con disparo
+        yield return WaitGame(S(0.5f));
+        SpawnAt(prefabSine,  3.0f);                         // flancos ondulantes
+        SpawnAt(prefabSine, -3.0f);
+        yield return WaitGame(S(0.5f));
+        SpawnAt(prefabLinear,  2.5f);                       // muro que cierra
+        SpawnAt(prefabLinear, -2.5f);
+        yield return WaitGame(S(0.35f));
+        SpawnAt(prefabLinear,  1.0f);
+        SpawnAt(prefabLinear, -1.0f);
+        yield return WaitGame(S(0.35f));
+        SpawnAt(prefabShooter, 3.2f);                       // remate con Shooters extremos
+        SpawnAt(prefabShooter, -3.2f);
+        yield return WaitGame(S(3f));
     }
 
     IEnumerator Phase3_NormalEnemiesAggressive()
@@ -194,77 +307,77 @@ public class EnemyManager : MonoBehaviour
         
         // Ola 1: Triple diagonal rápida de Linears (top → centro → bottom)
         SpawnAt(prefabLinear,  3f);
-        yield return new WaitForSeconds(0.3f);
+        yield return WaitGame(0.3f);
         SpawnAt(prefabLinear,  0f);
-        yield return new WaitForSeconds(0.3f);
+        yield return WaitGame(0.3f);
         SpawnAt(prefabLinear, -3f);
-        yield return new WaitForSeconds(S(2f));
+        yield return WaitGame(S(2f));
 
         // Ola 2: Cuatro Linears en 2 pares rápidos (exterior luego interior)
         SpawnAt(prefabLinear,  3f);
         SpawnAt(prefabLinear, -3f);
-        yield return new WaitForSeconds(0.35f);
+        yield return WaitGame(0.35f);
         SpawnAt(prefabLinear,  1.2f);
         SpawnAt(prefabLinear, -1.2f);
-        yield return new WaitForSeconds(S(2.5f));
+        yield return WaitGame(S(2.5f));
 
         // Ola 3: Triple Sine simétrico (exteriores + centro)
         SpawnAt(prefabSine,  3f);
         SpawnAt(prefabSine, -3f);
-        yield return new WaitForSeconds(0.5f);
+        yield return WaitGame(0.5f);
         SpawnAt(prefabSine, 0f);
-        yield return new WaitForSeconds(S(3f));
+        yield return WaitGame(S(3f));
 
         // Ola 4: Cuatro Shooters en cuadrado — máxima presión de fuego
         SpawnAt(prefabShooter,  2.5f);
         SpawnAt(prefabShooter, -2.5f);
-        yield return new WaitForSeconds(0.4f);
+        yield return WaitGame(0.4f);
         SpawnAt(prefabShooter,  0.8f);
         SpawnAt(prefabShooter, -0.8f);
-        yield return new WaitForSeconds(S(3.5f));
+        yield return WaitGame(S(3.5f));
 
         // Ola 5: Flanqueo cruzado — Linears y Sines intercalados en lados opuestos
         SpawnAt(prefabLinear,  2.5f);
         SpawnAt(prefabSine,   -2.5f);
-        yield return new WaitForSeconds(0.5f);
+        yield return WaitGame(0.5f);
         SpawnAt(prefabSine,    2.5f);
         SpawnAt(prefabLinear, -2.5f);
-        yield return new WaitForSeconds(S(2.5f));
+        yield return WaitGame(S(2.5f));
 
         // Ola 6: Diagonal de Sines + Shooters cubriendo huecos
         SpawnAt(prefabSine,     3f);
-        yield return new WaitForSeconds(0.35f);
+        yield return WaitGame(0.35f);
         SpawnAt(prefabSine,     0f);
         SpawnAt(prefabShooter, -1.5f);
-        yield return new WaitForSeconds(0.35f);
+        yield return WaitGame(0.35f);
         SpawnAt(prefabSine,    -3f);
         SpawnAt(prefabShooter,  1.5f);
-        yield return new WaitForSeconds(S(3f));
+        yield return WaitGame(S(3f));
 
         // Ola 7: Muro de 5 Sines en abanico completo
         SpawnAt(prefabSine,  3.2f);
-        yield return new WaitForSeconds(0.25f);
+        yield return WaitGame(0.25f);
         SpawnAt(prefabSine,  1.6f);
-        yield return new WaitForSeconds(0.25f);
+        yield return WaitGame(0.25f);
         SpawnAt(prefabSine,  0f);
-        yield return new WaitForSeconds(0.25f);
+        yield return WaitGame(0.25f);
         SpawnAt(prefabSine, -1.6f);
-        yield return new WaitForSeconds(0.25f);
+        yield return WaitGame(0.25f);
         SpawnAt(prefabSine, -3.2f);
-        yield return new WaitForSeconds(S(3f));
+        yield return WaitGame(S(3f));
 
         // Ola 8 (cierre fase 3): Embestida total con los 3 tipos en flancos alternos
         SpawnAt(prefabLinear,   3f);
         SpawnAt(prefabShooter, -3f);
-        yield return new WaitForSeconds(0.3f);
+        yield return WaitGame(0.3f);
         SpawnAt(prefabSine,    1.5f);
         SpawnAt(prefabLinear, -1.5f);
-        yield return new WaitForSeconds(0.3f);
+        yield return WaitGame(0.3f);
         SpawnAt(prefabShooter,  0f);
-        yield return new WaitForSeconds(0.3f);
+        yield return WaitGame(0.3f);
         SpawnAt(prefabLinear,   3f);
         SpawnAt(prefabLinear,  -3f);
-        yield return new WaitForSeconds(S(3f));
+        yield return WaitGame(S(3f));
     }
 
     //   total       — cuántos kamikazes en total
@@ -285,7 +398,7 @@ public class EnemyManager : MonoBehaviour
             spawned += toSpawn;
 
             float pause = spawned < halfAt ? pauseFirst : pauseSecond;
-            yield return new WaitForSeconds(pause);
+            yield return WaitGame(pause);
         }
     }
 
@@ -299,7 +412,7 @@ public class EnemyManager : MonoBehaviour
                 EnemyBase eb = go.GetComponent<EnemyBase>();
                 if (eb != null) eb.moveSpeed *= speedMult;
             }
-            yield return new WaitForSeconds(intraDelay);
+            yield return WaitGame(intraDelay);
         }
     }
 
@@ -307,10 +420,10 @@ public class EnemyManager : MonoBehaviour
     {
         float sfxLen = AudioManager.Instance != null ? AudioManager.Instance.WarningSFXLength : 2f;
         HUDController.Instance?.ShowKamikazeWarning();   // muestra panel + 1er sonido
-        yield return new WaitForSeconds(sfxLen);
+        yield return WaitGame(sfxLen);
         AudioManager.Instance?.PlayWarningSFXOneShot();  // 2o sonido
         float remaining = 4f - sfxLen;
-        if (remaining > 0f) yield return new WaitForSeconds(remaining);
+        if (remaining > 0f) yield return WaitGame(remaining);
         HUDController.Instance?.HideKamikazeWarning();
     }
 
@@ -318,7 +431,7 @@ public class EnemyManager : MonoBehaviour
     {
         AudioManager.Instance?.PlaySFX("warning");
         HUDController.Instance?.StartBossWarning();
-        yield return new WaitForSeconds(6f);
+        yield return WaitGame(6f);
         HUDController.Instance?.StopBossWarning();
     }
 
@@ -330,75 +443,38 @@ public class EnemyManager : MonoBehaviour
     }
 
 
-    // N enemigos del mismo tipo con delay entre ellos
-    IEnumerator SpawnRepeating(GameObject prefab, int count, float interval)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            SpawnEnemy(prefab);
-            yield return new WaitForSeconds(interval);
-        }
-    }
-
-    // Alternando entre dos tipos
-    IEnumerator SpawnAlternating(GameObject prefabA, GameObject prefabB,
-                                  int count, float interval)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            SpawnEnemy(i % 2 == 0 ? prefabA : prefabB);
-            yield return new WaitForSeconds(interval);
-        }
-    }
-
-    // Grupo compacto de N enemigos del mismo tipo
-    IEnumerator SpawnGroup(GameObject prefab, int count, float intraDelay)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            SpawnEnemy(prefab);
-            yield return new WaitForSeconds(intraDelay);
-        }
-    }
-
-    // Oleada cíclica de los 3 tipos normales (Linear → Sine → Shooter)
-    // Cada 3 rondas añade un Linear extra de refuerzo
-    IEnumerator SpawnMixedNormal(int rounds, float interval, bool includeShooter)
-    {
-        int typeCount = includeShooter ? 3 : 2;
-        for (int r = 0; r < rounds; r++)
-        {
-            switch (r % typeCount)
-            {
-                case 0: SpawnEnemy(prefabLinear);  break;
-                case 1: SpawnEnemy(prefabSine);    break;
-                case 2: SpawnEnemy(prefabShooter); break;
-            }
-
-            // Cada 3 rondas, refuerzo inmediato
-            if (r > 0 && r % 3 == 0)
-            {
-                yield return new WaitForSeconds(S(0.5f));
-                SpawnEnemy(prefabLinear);
-            }
-
-            yield return new WaitForSeconds(interval);
-        }
-    }
-
     // Instancia un enemigo en posición X fija, Y aleatoria (usado por kamikazes)
     GameObject SpawnEnemy(GameObject prefab)
     {
         if (prefab == null) return null;
         float y = Random.Range(spawnMinY, spawnMaxY);
-        return Instantiate(prefab, new Vector3(spawnX, y, 0f), Quaternion.identity);
+        return Instantiate(prefab, SafeSpawnPos(y), Quaternion.identity);
     }
 
     // Instancia un enemigo en posición X fija, Y exacta (usado por formaciones)
     GameObject SpawnAt(GameObject prefab, float y)
     {
         if (prefab == null) return null;
-        return Instantiate(prefab, new Vector3(spawnX, y, 0f), Quaternion.identity);
+        return Instantiate(prefab, SafeSpawnPos(y), Quaternion.identity);
+    }
+
+    // Devuelve un punto de spawn que respete la distancia mínima con cualquier enemigo activo.
+    // Si hay alguien cerca, empuja la X hacia la derecha (fuera de pantalla) para que entren espaciados.
+    Vector3 SafeSpawnPos(float y)
+    {
+        float x = spawnX;
+        var existing = FindObjectsByType<EnemyBase>(FindObjectsSortMode.None);
+        foreach (var eb in existing)
+        {
+            if (eb == null || !eb.gameObject.activeInHierarchy) continue;
+            Vector3 p = eb.transform.position;
+            // Solo nos importan los que están a una altura similar y a la derecha del jugador
+            if (Mathf.Abs(p.y - y) < spawnMinSpacing && p.x > x - spawnMinSpacing)
+            {
+                x = p.x + spawnMinSpacing;
+            }
+        }
+        return new Vector3(x, y, 0f);
     }
 
     // Spawna 'count' power-ups aleatorios separados verticalmente.
@@ -429,10 +505,85 @@ public class EnemyManager : MonoBehaviour
                 0f);
 
             Instantiate(prefab, pos, Quaternion.identity);
-            Debug.Log($"[EnemyManager] PowerUp spawneado: {prefab.name} en {pos}");
 
-            yield return new WaitForSeconds(0.3f);   // pequeño retraso entre ítems
+            yield return WaitGame(0.3f);   // pequeño retraso entre ítems
         }
+    }
+
+    /// <summary>
+    /// Spawna la oleada de power-ups al final de cada fase:
+    ///   · Un arma de cada tipo (Normal, Spread, Laser, Homing)
+    ///   · Una bomba
+    ///   · Un ítem aleatorio de los "bonus" (ExtraLife, Shield, SpeedBoost, OrbitDrones)
+    /// Total: 6 power-ups separados verticalmente, centrados en pantalla.
+    /// </summary>
+    IEnumerator SpawnPhaseEndPowerUps()
+    {
+        if (powerUpPrefabs == null || powerUpPrefabs.Length == 0)
+        {
+            Debug.LogWarning("[EnemyManager] No hay power-up prefabs asignados en el Inspector.");
+            yield break;
+        }
+
+        // Tipos fijos que siempre aparecen
+        PowerUpType[] fixed_types = new PowerUpType[]
+        {
+            PowerUpType.WeaponNormal,
+            PowerUpType.WeaponSpread,
+            PowerUpType.WeaponLaser,
+            PowerUpType.WeaponHoming,
+            PowerUpType.Bomb,
+        };
+
+        // Tipos bonus: se elige 1 aleatorio
+        PowerUpType[] bonus_types = new PowerUpType[]
+        {
+            PowerUpType.ExtraLife,
+            PowerUpType.Shield,
+            PowerUpType.SpeedBoost,
+            PowerUpType.OrbitDrones,
+        };
+        PowerUpType randomBonus = bonus_types[Random.Range(0, bonus_types.Length)];
+
+        // Lista completa: 5 fijos + 1 bonus aleatorio = 6 ítems
+        PowerUpType[] spawnOrder = new PowerUpType[fixed_types.Length + 1];
+        fixed_types.CopyTo(spawnOrder, 0);
+        spawnOrder[fixed_types.Length] = randomBonus;
+
+        int count         = spawnOrder.Length;   // 6
+        float totalHeight = (count - 1) * powerUpSpacing;
+        float startY      = powerUpSpawnPos.y + totalHeight * 0.5f;
+
+        for (int i = 0; i < count; i++)
+        {
+            GameObject prefab = GetPrefabByType(spawnOrder[i]);
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[EnemyManager] Prefab no encontrado para tipo {spawnOrder[i]}. ¿Está asignado en el Inspector?");
+                continue;
+            }
+
+            Vector3 pos = new Vector3(
+                powerUpSpawnPos.x,
+                startY - i * powerUpSpacing,
+                0f);
+
+            Instantiate(prefab, pos, Quaternion.identity);
+            yield return WaitGame(0.3f);
+        }
+    }
+
+    /// <summary>Busca en powerUpPrefabs el primer prefab cuyo PowerUpItem.type coincida con el solicitado.</summary>
+    GameObject GetPrefabByType(PowerUpType type)
+    {
+        foreach (var prefab in powerUpPrefabs)
+        {
+            if (prefab == null) continue;
+            var item = prefab.GetComponent<PowerUpItem>();
+            if (item != null && item.type == type)
+                return prefab;
+        }
+        return null;
     }
 
     IEnumerator ShowWarning(string message, float duration)
@@ -443,8 +594,7 @@ public class EnemyManager : MonoBehaviour
             txtPhaseWarning.alpha = 1f;
         }
 
-        Debug.Log($"── {message} ──");
-        yield return new WaitForSeconds(duration);
+        yield return WaitGame(duration);
 
         if (txtPhaseWarning != null)
         {

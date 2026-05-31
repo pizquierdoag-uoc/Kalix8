@@ -1,8 +1,15 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class HitSpark : MonoBehaviour
 {
     static Sprite _sparkSprite;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void RegisterSceneCleanup()
+    {
+        SceneManager.sceneUnloaded += _ => { _sparkSprite = null; };
+    }
 
     float _life;
     float _maxLife;

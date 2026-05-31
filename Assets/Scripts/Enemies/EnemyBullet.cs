@@ -27,10 +27,12 @@ public class EnemyBullet : MonoBehaviour
             gameObject.SetActive(false);
             return;
         }
-        if (other.CompareTag("Wall") || other.CompareTag("PlayerBullet"))
+        if (other.CompareTag("Wall"))
         {
             gameObject.SetActive(false);
             return;
         }
+        // PlayerBullet: el proyectil del jugador se destruye al chocar con éste,
+        // pero el disparo enemigo sigue adelante (ignoramos la colisión aquí).
     }
 }

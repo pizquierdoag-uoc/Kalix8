@@ -16,7 +16,7 @@ public class ScrollManager : MonoBehaviour
     ParallaxLayer[] _layers;
     float _rampFrom;
     float _targetSpeed;
-    float _rampDuration;   // duración interna del ramp actual (no mezclar con el campo público)
+    float _rampDuration;
     float _rampTimer;
     bool  _ramping;
 
@@ -29,23 +29,29 @@ public class ScrollManager : MonoBehaviour
         BeginRamp(0f, baseSpeed, rampDuration);
     }
 
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
+
     void Update()
     {
-        if (GameManager.Instance != null && !GameManager.Instance.IsPlaying) return;
+        // Parar solo en menú principal; en GameOver el fondo sigue moviéndose
+        var gm = GameManager.Instance;
+        if (gm != null && gm.CurrentState == GameManager.GameState.MainMenu) return;
         if (IsPaused) return;
 
         if (_ramping)
         {
             _rampTimer  += Time.deltaTime;
             float t      = Mathf.Clamp01(_rampTimer / _rampDuration);
-            CurrentSpeed = Mathf.Lerp(_rampFrom, _targetSpeed, t * t); // ease-in
+            CurrentSpeed = Mathf.Lerp(_rampFrom, _targetSpeed, t * t);
             if (t >= 1f) { CurrentSpeed = _targetSpeed; _ramping = false; }
         }
 
         PushSpeed(CurrentSpeed);
     }
 
-    // Cambia la velocidad de forma instantánea.
     public void SetSpeed(float speed)
     {
         _ramping     = false;
@@ -53,7 +59,6 @@ public class ScrollManager : MonoBehaviour
         PushSpeed(speed);
     }
 
-    // Transición suave hacia una nueva velocidad.
     public void RampTo(float speed, float duration) =>
         BeginRamp(CurrentSpeed, speed, duration);
 
@@ -66,20 +71,21 @@ public class ScrollManager : MonoBehaviour
     public void ResumeScroll()
     {
         IsPaused = false;
-        PushSpeed(CurrentSpeed);   // restaura velocidad inmediatamente aunque !IsPlaying
+        PushSpeed(CurrentSpeed);
     }
 
     void BeginRamp(float from, float to, float duration)
     {
-        _rampFrom    = from;
-        _targetSpeed = to;
-        _rampDuration = Mathf.Max(duration, 0.01f);  // estado interno, no toca el campo público
-        _rampTimer   = 0f;
-        _ramping     = true;
+        _rampFrom     = from;
+        _targetSpeed  = to;
+        _rampDuration = Mathf.Max(duration, 0.01f);
+        _rampTimer    = 0f;
+        _ramping      = true;
     }
 
     void PushSpeed(float speed)
     {
+        if (_layers == null) return;
         foreach (var layer in _layers)
             layer?.SetBaseSpeed(speed);
     }

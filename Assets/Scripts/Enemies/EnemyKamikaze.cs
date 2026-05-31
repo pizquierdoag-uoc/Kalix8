@@ -9,6 +9,18 @@ public class EnemyKamikaze : EnemyBase
     Vector2 _direction;
     bool    _locked;
 
+    protected override void Awake()
+    {
+        base.Awake();
+        // Velocidad final fija por dificultad (ignora EnemySpeedMult global)
+        switch (GameSettings.CurrentDifficulty)
+        {
+            case GameSettings.Difficulty.Easy:   moveSpeed = 3.1f; break;  // 2.4 × 1.30 = +30%
+            case GameSettings.Difficulty.Normal: moveSpeed = 3.2f; break;  // 2.7 × 1.20 = +20%
+            case GameSettings.Difficulty.Hard:   moveSpeed = 3.3f; break;  // 3.0 × 1.10 = +10%
+        }
+    }
+
     protected override void OnEnable()
     {
         base.OnEnable();

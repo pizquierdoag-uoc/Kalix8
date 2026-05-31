@@ -147,6 +147,12 @@ MonoBehaviour:
   bobAmount: 0.3
   bobSpeed: 2
   lifetime: 12
+  rotate: 1
+  rotateSpeed: 45
+  breathe: 1
+  breatheAmount: 0.08
+  breatheSpeed: 2
+  spriteScale: 0.63
   autoColor: 1
 --- !u!114 &7703153723943784307
 MonoBehaviour:

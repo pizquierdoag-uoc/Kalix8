@@ -22,12 +22,34 @@ public class BossController : MonoBehaviour
     [Header("Barra de vida del boss (opcional)")]
     public UnityEngine.UI.Slider healthBar;
 
+    [Header("Transición Fase 2")]
+    [Tooltip("Segundos que tarda en deslizarse suavemente a la posición de inicio de fase 2.")]
+    public float phase2TransitionDuration = 0.8f;
+
+    [Header("Explosión")]
+    [Tooltip("Prefab con ExplosionEffect/FrameAnimator que se instancia al morir.")]
+    public GameObject explosionPrefab;
+    [Tooltip("Escala extra del efecto de explosión del boss respecto al normal.")]
+    public float      explosionScale = 3f;
+
+    [Header("Secuencia de muerte")]
+    [Tooltip("Número de explosiones pequeñas que recorren el sprite antes de la explosión final.")]
+    public int   deathExplosionCount    = 10;
+    [Tooltip("Segundos entre cada explosión pequeña.")]
+    public float deathExplosionInterval = 0.12f;
+    [Tooltip("Escala de cada explosión pequeña relativa al prefab.")]
+    public float deathExplosionSmallScale = 1.3f;
+
     int   _currentHealth;
     bool  _isDead;
     bool  _isEntering = true;
     bool  _phase2Active;
     float _fireTimer;
     float _bobTime;
+
+    bool  _phase2Transitioning;
+    float _phase2TransitionTimer;
+    float _phase2TransitionFromY;
 
     SpriteRenderer _sr;
 
@@ -38,12 +60,15 @@ public class BossController : MonoBehaviour
 
     void OnEnable()
     {
-        _currentHealth = maxHealth;
-        _isDead        = false;
-        _isEntering    = true;
-        _phase2Active  = false;
-        _fireTimer     = 0f;
-        _bobTime       = 0f;
+        _currentHealth         = maxHealth;
+        _isDead                = false;
+        _isEntering            = true;
+        _phase2Active          = false;
+        _phase2Transitioning   = false;
+        _phase2TransitionTimer = 0f;
+        _phase2TransitionFromY = 0f;
+        _fireTimer             = 0f;
+        _bobTime               = 0f;
 
         // Conecta con la barra de vida del HUD (la crea si no existe)
         if (healthBar == null && HUDController.Instance != null)
@@ -89,8 +114,24 @@ public class BossController : MonoBehaviour
     void BobMovement()
     {
         _bobTime += Time.deltaTime;
-        float speed = _phase2Active ? bobFrequency * 1.5f : bobFrequency;
-        float y = Mathf.Sin(_bobTime * speed) * bobAmplitude;
+        float speed    = _phase2Active ? bobFrequency * 1.5f : bobFrequency;
+        float targetY  = Mathf.Sin(_bobTime * speed) * bobAmplitude;
+
+        float y;
+        if (_phase2Transitioning)
+        {
+            _phase2TransitionTimer += Time.deltaTime;
+            float t = Mathf.Clamp01(_phase2TransitionTimer / phase2TransitionDuration);
+            // Smoothstep para una interpolación suave sin tirones
+            float smooth = t * t * (3f - 2f * t);
+            y = Mathf.Lerp(_phase2TransitionFromY, targetY, smooth);
+            if (t >= 1f) _phase2Transitioning = false;
+        }
+        else
+        {
+            y = targetY;
+        }
+
         transform.position = new Vector3(entryTargetX, y, 0f);
     }
 
@@ -167,25 +208,61 @@ public class BossController : MonoBehaviour
 
     void ActivatePhase2()
     {
-        _phase2Active = true;
-        Debug.Log("BOSS — Fase 2 activada");
-        // Aquí puedes añadir efectos visuales de transición de fase
+        _phase2Active              = true;
+        _phase2TransitionFromY     = transform.position.y;
+        _phase2TransitionTimer     = 0f;
+        _phase2Transitioning       = true;
+        _bobTime                   = 0f;   // reinicia la fase senoidal desde 0
     }
 
     void Die()
     {
         _isDead = true;
 
-        // Para la música inmediatamente y reproduce la explosión
-        AudioManager.Instance?.StopMusic();
-        AudioManager.Instance?.PlaySFX("boss_death");
-
-        ScoreManager.Instance?.AddScore(scoreValue);
-
         if (healthBar != null)
             healthBar.gameObject.SetActive(false);
 
-        Debug.Log("BOSS DERROTADO");
+        StartCoroutine(DeathSequence());
+    }
+
+    IEnumerator DeathSequence()
+    {
+        // Calcula los límites del sprite para distribuir las explosiones por su superficie
+        Bounds bounds = _sr != null
+            ? _sr.bounds
+            : new Bounds(transform.position, Vector3.one * 2f);
+
+        // Explosiones pequeñas repartidas aleatoriamente por el sprite
+        for (int i = 0; i < deathExplosionCount; i++)
+        {
+            if (explosionPrefab != null)
+            {
+                Vector3 pos = new Vector3(
+                    Random.Range(bounds.min.x, bounds.max.x),
+                    Random.Range(bounds.min.y, bounds.max.y),
+                    0f);
+
+                var fx = Instantiate(explosionPrefab, pos, Quaternion.identity);
+                fx.transform.localScale *= deathExplosionSmallScale;
+                fx.SetActive(true);
+            }
+
+            AudioManager.Instance?.PlaySFX("enemy_hit");
+            yield return new WaitForSeconds(deathExplosionInterval);
+        }
+
+        // Explosión final grande centrada en el boss
+        AudioManager.Instance?.StopMusic();
+        AudioManager.Instance?.PlaySFX("boss_death");
+        ScoreManager.Instance?.AddScore(scoreValue);
+
+        if (explosionPrefab != null)
+        {
+            var fx = Instantiate(explosionPrefab, transform.position, Quaternion.identity);
+            if (explosionScale > 0f && Mathf.Abs(explosionScale - 1f) > 0.001f)
+                fx.transform.localScale *= explosionScale;
+            fx.SetActive(true);
+        }
 
         // Inicia la secuencia de final de fase
         StageClearManager.Instance?.TriggerStageClear();

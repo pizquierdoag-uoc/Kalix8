@@ -29,8 +29,8 @@ Transform:
   m_GameObject: {fileID: 8303864451646636341}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.8, y: 0.8, z: 1}
+  m_LocalPosition: {x: -0.6, y: -0.1, z: 0}
+  m_LocalScale: {x: 0.4, y: 0.4, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -84,7 +84,7 @@ SpriteRenderer:
   m_SortingLayer: 2
   m_SortingOrder: 11
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 3504377470489902495, guid: 226aa19440d2b5441a99f50b6572683d, type: 3}
+  m_Sprite: {fileID: -503181616776558066, guid: 9b19ebd027259c54b8bb9bc8c2753752, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -175,3 +175,11 @@ MonoBehaviour:
   damage: 2
   lifetime: 4
   searchRadius: 12
+  engineColorCore: {r: 1, g: 0.95, b: 0.6, a: 1}
+  engineColorOuter: {r: 1, g: 0.4, b: 0, a: 1}
+  flameBaseLength: 0.35
+  flamePulseAmount: 0.15
+  flamePulseSpeed: 14
+  flameBaseWidth: 0.12
+  trailTime: 0.25
+  trailStartWidth: 0.08

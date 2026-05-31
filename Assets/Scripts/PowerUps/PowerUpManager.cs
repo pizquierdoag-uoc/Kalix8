@@ -3,14 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PowerUpManager : MonoBehaviour
+public class PowerUpManager : Singleton<PowerUpManager>
 {
-    public static PowerUpManager Instance { get; private set; }
-
-    void Awake()
+    protected override void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
+        base.Awake();
+        if (Instance != this) return;
         _bombCount = GameSettings.StartingBombs;
     }
 
@@ -19,7 +17,7 @@ public class PowerUpManager : MonoBehaviour
     public GameObject shieldEffect; // círculo visual opcional
 
     [Header("Speed Boost")]
-    public float speedBoostStep     = 1.5f;  // velocidad extra por paso
+    public float speedBoostStep     = 0.6f;  // velocidad extra por paso
     public int   speedBoostMaxSteps = 4;     // pasos máximos acumulables
 
     [Header("Bomba")]
@@ -45,9 +43,10 @@ public class PowerUpManager : MonoBehaviour
     PlayerController _shieldedPlayer;
     int              _speedLevel;
     float            _baseSpeed;
+    bool             _shieldActive;
 
     public int  BombCount    => _bombCount;
-    public bool ShieldActive => _shieldInstance != null;
+    public bool ShieldActive => _shieldActive;
 
     void Update()
     {
@@ -59,7 +58,7 @@ public class PowerUpManager : MonoBehaviour
     {
         if (debugPowerUpPrefabs == null || debugPowerUpPrefabs.Length == 0)
         {
-            Debug.LogWarning("[PowerUpManager] F3: asigna prefabs en 'Debug Power Up Prefabs'");
+            Debug.LogWarning("F3: asigna prefabs en 'Debug Power Up Prefabs'");
             return;
         }
 
@@ -75,7 +74,7 @@ public class PowerUpManager : MonoBehaviour
             Instantiate(debugPowerUpPrefabs[idx], pos, Quaternion.identity);
         }
 
-        Debug.Log($"[PowerUpManager] F3 — spawneados {debugDropCount} powerups aleatorios");
+        Debug.Log($"F3 — {debugDropCount} powerups spawneados");
     }
 
     public void ResetBombs(int count)
@@ -109,6 +108,7 @@ public class PowerUpManager : MonoBehaviour
     IEnumerator ShieldRoutine(PlayerController player)
     {
         _shieldedPlayer = player;
+        _shieldActive   = true;
         player.SetInvulnerable(true);
 
         if (shieldEffect != null)
@@ -118,7 +118,7 @@ public class PowerUpManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("[PowerUpManager] shieldEffect no asignado en el Inspector");
+            Debug.LogWarning("shieldEffect no asignado en el Inspector");
         }
 
         yield return new WaitForSeconds(shieldDuration);
@@ -135,6 +135,7 @@ public class PowerUpManager : MonoBehaviour
 
     void DeactivateShield()
     {
+        _shieldActive = false;
         if (_shieldedPlayer != null) { _shieldedPlayer.SetInvulnerable(false); _shieldedPlayer = null; }
         if (_shieldInstance != null) { Destroy(_shieldInstance); _shieldInstance = null; }
     }
@@ -145,7 +146,6 @@ public class PowerUpManager : MonoBehaviour
         if (_speedLevel >= speedBoostMaxSteps) return;
         _speedLevel++;
         player.moveSpeed = _baseSpeed + _speedLevel * speedBoostStep;
-        Debug.Log($"[SpeedBoost] nivel {_speedLevel}/{speedBoostMaxSteps}  speed={player.moveSpeed:F1}");
     }
 
     public void ResetSpeedBoost(PlayerController player)
@@ -174,14 +174,14 @@ public class PowerUpManager : MonoBehaviour
             }
         }
 
-        // Sonido de bomba
+        // Destruye todos los proyectiles enemigos en pantalla
+        foreach (var bullet in GameObject.FindGameObjectsWithTag("EnemyBullet"))
+            bullet.SetActive(false);
+
         AudioManager.Instance?.PlayBombExplosionSFX();
 
-        // Explosiones en pantalla (comprobación Unity-safe contra objetos destruidos)
         if (BombScreenEffect.Instance != null)
             BombScreenEffect.Instance.Trigger();
-
-        Debug.Log("BOMBA — " + enemies.Length + " enemigos eliminados");
     }
 
     public void ActivateOrbitDrones(PlayerController player)
@@ -220,9 +220,25 @@ public class PowerUpManager : MonoBehaviour
         _activeDrones.Clear();
     }
 
-    IEnumerator DeactivateAfter(GameObject obj, float delay)
+    /// Limpia todo el estado de la partida anterior al volver al menú principal.
+    /// Evita que referencias a GameObjects destruidos en la escena Game provoquen
+    /// crashes al acceder a ellas desde otros managers persistentes.
+    public void ResetOnMenuReturn()
     {
-        yield return new WaitForSeconds(delay);
-        obj.SetActive(false);
+        // Cancela corrutina de escudo si estaba en marcha
+        if (_shieldRoutine != null) { StopCoroutine(_shieldRoutine); _shieldRoutine = null; }
+        _shieldActive   = false;
+        _shieldedPlayer = null;
+        if (_shieldInstance != null) { Destroy(_shieldInstance); _shieldInstance = null; }
+
+        // Elimina los drones orbitales (sus GameObjects ya fueron destruidos al cambiar
+        // de escena, pero la lista puede contener referencias colgantes)
+        RemoveDrones();
+
+        // Reinicia velocidad y bombas a los valores de configuración
+        _speedLevel = 0;
+        _baseSpeed  = 0f;
+        _bombCount  = GameSettings.StartingBombs;
     }
+
 }

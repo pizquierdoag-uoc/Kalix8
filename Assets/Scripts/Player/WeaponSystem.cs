@@ -9,9 +9,9 @@ public class WeaponSystem : MonoBehaviour
     public WeaponType currentWeapon = WeaponType.Normal;
 
     [Header("Cadencia (seg. entre disparos)")]
-    public float fireRateNormal = 0.12f;
-    public float fireRateSpread = 0.20f;
-    public float fireRateHoming = 0.40f;
+    public float fireRateNormal = 0.4f;
+    public float fireRateSpread = 0.5f;
+    public float fireRateHoming = 1.0f;
 
     [Header("Prefabs de balas")]
     public GameObject bulletNormalPrefab;
@@ -41,9 +41,15 @@ public class WeaponSystem : MonoBehaviour
     LineRenderer _laserLine;
     Transform    _shootPoint;
     float        _laserDamageAccum;
+    Collider2D   _laserLastTarget;
+
+    readonly List<RaycastHit2D> _laserHits = new List<RaycastHit2D>();
+    ContactFilter2D             _laserFilter;
 
     void Awake()
     {
+        _laserFilter.useTriggers = true;
+
         _laserLine               = gameObject.AddComponent<LineRenderer>();
         _laserLine.positionCount = 2;
         _laserLine.startWidth    = 0.08f;
@@ -54,9 +60,11 @@ public class WeaponSystem : MonoBehaviour
         }
         else
         {
+            // Shaders Built-in (Unlit/Color, Sprites/Default) no se incluyen en builds URP.
+            // Buscar solo shaders URP; si tampoco están, crear material vacío en lugar de caer
+            // en el shader de error magenta.
             Shader laserShader = Shader.Find("Universal Render Pipeline/Particles/Unlit")
-                              ?? Shader.Find("Unlit/Color")
-                              ?? Shader.Find("Sprites/Default");
+                              ?? Shader.Find("Universal Render Pipeline/Unlit");
             if (laserShader != null)
             {
                 _laserLine.material = new Material(laserShader);
@@ -64,7 +72,14 @@ public class WeaponSystem : MonoBehaviour
             }
             else
             {
-                _laserLine.material = new Material(Shader.Find("Hidden/InternalErrorShader") ?? Shader.Find("Standard"));
+                // Sin material asignado en Inspector y sin shader URP disponible.
+                // Usa un shader estándar disponible en cualquier proyecto para evitar
+                // el material magenta de InternalErrorShader.
+                var mat = new Material(Shader.Find("Sprites/Default") ?? Shader.Find("Standard"));
+                if (mat != null) mat.color = Color.clear; // invisible, no rompe el juego
+                _laserLine.material = mat;
+                Debug.LogWarning("[WeaponSystem] laserMaterial no asignado en Inspector. " +
+                                 "El láser puede no verse en build. Asigna un material URP en el prefab.");
             }
         }
         _laserLine.startColor    = laserColor;
@@ -84,7 +99,6 @@ public class WeaponSystem : MonoBehaviour
         _shootPoint = shootPoint;
         bool laserWasActive = _laserActive;
         if (currentWeapon != WeaponType.Laser) DeactivateLaser();
-        _fireCooldown -= Time.deltaTime;
         if (_fireCooldown > 0f) return;
 
         switch (currentWeapon)
@@ -111,6 +125,13 @@ public class WeaponSystem : MonoBehaviour
     {
         DeactivateLaser();
         currentWeapon = (WeaponType)(((int)currentWeapon + 1) % 4);
+        NotifyHUD();
+    }
+
+    public void OnPlayerDied()
+    {
+        int idx = (int)currentWeapon;
+        _levels[idx] = Mathf.Max(_levels[idx] - 1, 0);
         NotifyHUD();
     }
 
@@ -178,20 +199,24 @@ public class WeaponSystem : MonoBehaviour
         _fireCooldown      = 0f;
         _laserActive       = true;
         _laserLine.enabled = true;
-        _laserLine.startWidth = (0.08f + WeaponLevel * 0.06f) * bulletScale;
-        _laserLine.endWidth   = (0.04f + WeaponLevel * 0.03f) * bulletScale;
+        _laserLine.startWidth = (0.08f + WeaponLevel * 0.03f) * bulletScale;
+        _laserLine.endWidth   = (0.04f + WeaponLevel * 0.015f) * bulletScale;
 
         Vector2 origin   = _shootPoint.position;
-        Vector2 endPoint = origin + Vector2.right * laserMaxLength;
+        float   maxDist  = laserMaxLength;
+        if (Camera.main != null)
+        {
+            float screenRight = Camera.main.ViewportToWorldPoint(new Vector3(1f, 0.5f, 0f)).x;
+            maxDist = Mathf.Max(maxDist, screenRight - origin.x + 2f);
+        }
+        Vector2 endPoint = origin + Vector2.right * maxDist;
 
-        // useTriggers=true porque los colliders de enemigos son triggers
-        var filter  = new ContactFilter2D { useTriggers = true };
-        var hits    = new List<RaycastHit2D>();
-        Physics2D.Raycast(origin, Vector2.right, filter, hits, laserMaxLength);
+        _laserHits.Clear();
+        Physics2D.Raycast(origin, Vector2.right, _laserFilter, _laserHits, maxDist);
 
         RaycastHit2D bestHit  = default;
         float        bestDist = float.MaxValue;
-        foreach (var h in hits)
+        foreach (var h in _laserHits)
         {
             if (h.collider.CompareTag("Enemy") && h.distance < bestDist)
             {
@@ -202,6 +227,13 @@ public class WeaponSystem : MonoBehaviour
 
         if (bestHit.collider != null)
         {
+            // Si el láser apunta a un enemigo diferente, reseteamos el acumulador de daño
+            if (bestHit.collider != _laserLastTarget)
+            {
+                _laserDamageAccum = 0f;
+                _laserLastTarget  = bestHit.collider;
+            }
+
             endPoint = bestHit.collider.bounds.center;
             float dps = laserDamagePerSecond * (1f + WeaponLevel * 0.4f);
             _laserDamageAccum += dps * Time.deltaTime;
@@ -218,6 +250,7 @@ public class WeaponSystem : MonoBehaviour
         else
         {
             _laserDamageAccum = 0f;
+            _laserLastTarget  = null;
         }
 
         _laserLine.SetPosition(0, origin);
@@ -230,6 +263,7 @@ public class WeaponSystem : MonoBehaviour
         if (_laserActive) AudioManager.Instance?.StopLaserSFX();
         _laserActive      = false;
         _laserDamageAccum = 0f;
+        _laserLastTarget  = null;
     }
 
     void ShootHoming()
@@ -256,6 +290,7 @@ public class WeaponSystem : MonoBehaviour
 
     void Update()
     {
+        if (_fireCooldown > 0f) _fireCooldown -= Time.deltaTime;
         if (_laserActive && currentWeapon != WeaponType.Laser) DeactivateLaser();
     }
 

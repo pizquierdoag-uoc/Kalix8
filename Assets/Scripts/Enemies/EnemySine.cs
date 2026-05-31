@@ -3,7 +3,7 @@ using UnityEngine;
 public class EnemySine : EnemyBase
 {
     [Header("Onda")]
-    public float amplitude = 2f;
+    public float amplitude = 1f;
     public float frequency = 2f;
 
     float _startY;
@@ -12,7 +12,9 @@ public class EnemySine : EnemyBase
     protected override void OnEnable()
     {
         base.OnEnable();
-        _startY = transform.position.y;
+        // Clampea el centro de la onda para que en el peor caso (amplitud máxima)
+        // el enemigo nunca sobrepase los límites del scroll/hull.
+        _startY = Mathf.Clamp(transform.position.y, _minY + amplitude, _maxY - amplitude);
         _time   = 0f;
     }
 

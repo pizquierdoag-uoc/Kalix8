@@ -59,6 +59,34 @@ public static class GameSettings
         }
     }
 
+    /// Multiplicador de daño del jugador sobre enemigos normales (no afecta al boss)
+    public static float PlayerDamageMult
+    {
+        get
+        {
+            switch (CurrentDifficulty)
+            {
+                case Difficulty.Easy: return 2f;
+                default:              return 1f;
+            }
+        }
+    }
+
+    /// Multiplicador extra de velocidad aplicado a los kamikazes sobre su moveSpeed base.
+    /// Valor independiente de EnemySpeedMult para afinar solo esta unidad por dificultad.
+    public static float KamikazeSpeedMult
+    {
+        get
+        {
+            switch (CurrentDifficulty)
+            {
+                case Difficulty.Easy:   return 1.5f;  // final ≈ 3 × 0.85 × 1.5 = 3.8 u/s
+                case Difficulty.Hard:   return 2.2f;  // final ≈ 3 × 1.20 × 2.2 = 7.9 u/s
+                default:               return 1.8f;  // final ≈ 3 × 1.00 × 1.8 = 5.4 u/s (Normal)
+            }
+        }
+    }
+
     /// Multiplicador de intervalo entre spawns (>1 = más lento = más fácil)
     public static float SpawnIntervalMult
     {

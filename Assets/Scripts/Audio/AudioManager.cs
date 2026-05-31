@@ -1,21 +1,16 @@
 using UnityEngine;
 
-public class AudioManager : MonoBehaviour
+public class AudioManager : Singleton<AudioManager>
 {
-    public static AudioManager Instance { get; private set; }
-
-    void Awake()
+    protected override void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
-
-        // Si loopSfxSource es null o apunta al mismo AudioSource que musicSource,
-        // creamos uno nuevo para evitar que el láser en bucle sobreescriba la música.
+        base.Awake();
+        if (Instance != this) return;
+        // loopSfxSource separado para que el láser en bucle no sobreescriba la música
         if (loopSfxSource == null || loopSfxSource == musicSource)
         {
-            loopSfxSource        = gameObject.AddComponent<AudioSource>();
-            loopSfxSource.loop   = false;
+            loopSfxSource             = gameObject.AddComponent<AudioSource>();
+            loopSfxSource.loop        = false;
             loopSfxSource.playOnAwake = false;
         }
     }
@@ -56,6 +51,10 @@ public class AudioManager : MonoBehaviour
     public AudioClip sfxStageClearScore;
     [Range(0f,1f)] public float sfxVolume = 0.8f;
 
+    [Header("SFX — Cuenta atrás Game Over (voz)")]
+    [Tooltip("11 clips: índice 0 = zero.wav, 1 = one.wav, … 10 = ten.wav")]
+    public AudioClip[] countdownClips = new AudioClip[11];
+
     bool _musicMuted;
     bool _sfxMuted;
     Coroutine _fadeCoroutine;
@@ -71,8 +70,7 @@ public class AudioManager : MonoBehaviour
 
     public void PlayMusic(AudioClip clip, bool fade = true)
     {
-        // Con efecto fade o no según parámetros
-		if (clip == null || musicSource == null) return;
+        if (clip == null || musicSource == null) return;
         if (musicSource.clip == clip && musicSource.isPlaying) return;
         musicSource.loop = true;
         if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
@@ -80,13 +78,12 @@ public class AudioManager : MonoBehaviour
         else { musicSource.clip = clip; musicSource.Play(); }
     }
 
-    // Métodos para las dirfefentes músicas del juego
-	public void PlayTitleMusic()   => PlayMusic(musicTitle);			// Pantalla Título
-    public void PlayMenuMusic()    => PlayMusic(musicMenu);				// Pantalla Menú
-    public void PlayGameMusic()    => PlayMusic(musicGame);				// Pantalla Juego. Parea más fases tendré que hacerlo distinto
-    public void PlayBossMusic()    => PlayMusic(musicBoss);				// Música Boss
-    public void PlayGameOverMusic()=> PlayMusic(musicGameOver, false);	// Música Game Over. 
-    public void PlayVictoryMusic()										// Música Stage Clear
+    public void PlayTitleMusic()    => PlayMusic(musicTitle);
+    public void PlayMenuMusic()     => PlayMusic(musicMenu);
+    public void PlayGameMusic()     => PlayMusic(musicGame);
+    public void PlayBossMusic()     => PlayMusic(musicBoss);
+    public void PlayGameOverMusic() => PlayMusic(musicGameOver, false);
+    public void PlayVictoryMusic()
     {
         AudioClip clip = musicVictory != null ? musicVictory : musicMenu;
         if (clip == null || musicSource == null) return;
@@ -115,23 +112,15 @@ public class AudioManager : MonoBehaviour
 
     public void PlaySFX(string name)
     {
-        // Buscamos el efecto de sonido
-		AudioClip clip = GetClipByName(name);
-		
-		// Añadido para comprobar si no he puesto el sonido
-        if (clip == null) { Debug.LogWarning("[AudioManager] SFX no encontrado: " + name); return; }
-		
-		// Play el efecto de sonido
+        AudioClip clip = GetClipByName(name);
+        if (clip == null) { Debug.LogWarning("SFX no encontrado: " + name); return; }
         PlaySFX(clip);
     }
 
     public void PlaySFX(AudioClip clip)
     {
-        if (clip == null || sfxSource == null|| _sfxMuted) return;
-		//	{ Debug.LogWarning("[AudioManager] SFX no encontrado: " + name); return; }
-			        
-		// Play
-		sfxSource.PlayOneShot(clip, sfxVolume);
+        if (clip == null || sfxSource == null || _sfxMuted) return;
+        sfxSource.PlayOneShot(clip, sfxVolume);
     }
 
     public void PlaySFXAtPosition(AudioClip clip, Vector3 position)
@@ -143,6 +132,38 @@ public class AudioManager : MonoBehaviour
     public void PlayBombExplosionSFX()
     {
         if (sfxBombExplosion != null) PlaySFX(sfxBombExplosion);
+    }
+
+    /// <summary>
+    /// Reproduce un SFX con variación de pitch y volumen sin afectar a otros SFX simultáneos.
+    /// Crea una AudioSource temporal que se autodestruye al terminar el clip.
+    /// Útil para ráfagas de explosiones donde la repetición exacta del mismo clip suena artificial.
+    /// </summary>
+    public void PlaySFXVaried(AudioClip clip, float minPitch = 0.9f, float maxPitch = 1.1f, float volumeScale = 1f)
+    {
+        if (clip == null || _sfxMuted) return;
+        var go  = new GameObject("SFX_" + clip.name);
+        var src = go.AddComponent<AudioSource>();
+        src.clip         = clip;
+        src.volume       = sfxVolume * Mathf.Clamp01(volumeScale);
+        src.pitch        = UnityEngine.Random.Range(minPitch, maxPitch);
+        src.spatialBlend = 0f;
+        src.priority     = 128;
+        src.Play();
+        // Duración real = length / pitch (clip más rápido si pitch > 1)
+        Destroy(go, clip.length / Mathf.Max(src.pitch, 0.01f) + 0.1f);
+    }
+
+    /// <summary>
+    /// Reproduce la locución del número indicado (0–10) sobre la cuenta atrás de Game Over.
+    /// El índice del array equivale al número: countdownClips[5] reproduce "five".
+    /// </summary>
+    public void PlayCountdownNumber(int n)
+    {
+        if (n < 0 || n > 10) return;
+        if (countdownClips == null || countdownClips.Length <= n) return;
+        var clip = countdownClips[n];
+        if (clip != null) PlaySFX(clip);
     }
 
     public float WarningSFXLength => sfxWarning != null ? sfxWarning.length : 3f;
@@ -182,17 +203,24 @@ public class AudioManager : MonoBehaviour
 
     public void PlayLaserSFX()
     {
-        if (sfxShootLaser == null || sfxSource == null || _sfxMuted) return;
-        sfxSource.PlayOneShot(sfxShootLaser, sfxVolume);
+        if (sfxShootLaser == null || loopSfxSource == null || _sfxMuted) return;
+        if (loopSfxSource.isPlaying && loopSfxSource.clip == sfxShootLaser) return;
+        loopSfxSource.clip   = sfxShootLaser;
+        loopSfxSource.loop   = true;
+        loopSfxSource.volume = sfxVolume;
+        loopSfxSource.Play();
     }
 
-    public void StopLaserSFX() { }
+    public void StopLaserSFX()
+    {
+        if (loopSfxSource != null && loopSfxSource.clip == sfxShootLaser)
+            loopSfxSource.Stop();
+    }
 
     public void SetSFXVolume(float v) { sfxVolume = Mathf.Clamp01(v); PlayerPrefs.SetFloat("SFXVolume", sfxVolume); }
     public void ToggleSFXMute()       { _sfxMuted = !_sfxMuted; }
 
-    // Distintos sonidos para el juego
-	AudioClip GetClipByName(string name)
+    AudioClip GetClipByName(string name)
     {
         switch (name.ToLower())
         {

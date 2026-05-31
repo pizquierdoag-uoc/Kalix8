@@ -15,10 +15,11 @@ public class PauseMenuPowerUpList : MonoBehaviour
     public float fontSize   = 18f;
     public Color labelColor = Color.white;
 
-    readonly List<Transform> _icons       = new List<Transform>();
-    readonly List<float>     _pulseSpeeds  = new List<float>();
-    readonly List<float>     _pulseOffsets = new List<float>();
-    readonly List<bool>      _rotates      = new List<bool>();
+    readonly List<Transform> _icons          = new List<Transform>();
+    readonly List<float>     _pulseSpeeds    = new List<float>();
+    readonly List<float>     _pulseOffsets   = new List<float>();
+    readonly List<float>     _pulseAmplitudes = new List<float>();
+    readonly List<bool>      _rotates        = new List<bool>();
 
     void Start()
     {
@@ -35,7 +36,7 @@ public class PauseMenuPowerUpList : MonoBehaviour
             if (_icons[i] == null) continue;
 
             // Respiración. Animación de agrandarse empequeñecerse
-            float s = 1f + Mathf.Sin(Time.unscaledTime * _pulseSpeeds[i] + _pulseOffsets[i]) * 0.09f;
+            float s = 1f + Mathf.Sin(Time.unscaledTime * _pulseSpeeds[i] + _pulseOffsets[i]) * _pulseAmplitudes[i];
             _icons[i].localScale = Vector3.one * s;
 
             // Rotación continua
@@ -51,19 +52,20 @@ public class PauseMenuPowerUpList : MonoBehaviour
         _icons.Clear();
         _pulseSpeeds.Clear();
         _pulseOffsets.Clear();
+        _pulseAmplitudes.Clear();
         _rotates.Clear();
 
         if (powerUpPrefabs == null) return;
 
-        // Layout vertical en este mismo objeto
+        // Layout vertical en este mismo objeto (centrado horizontal y vertical)
         var vlg = GetComponent<VerticalLayoutGroup>() ?? gameObject.AddComponent<VerticalLayoutGroup>();
         vlg.spacing                = rowSpacing;
-        vlg.childAlignment         = TextAnchor.UpperLeft;
+        vlg.childAlignment         = TextAnchor.MiddleCenter;
         vlg.childControlWidth      = true;
         vlg.childControlHeight     = false;
         vlg.childForceExpandWidth  = true;
         vlg.childForceExpandHeight = false;
-        vlg.padding                = new RectOffset(12, 12, 6, 6);
+        vlg.padding                = new RectOffset(12, 12, 12, 12);
 
         var csf = GetComponent<ContentSizeFitter>() ?? gameObject.AddComponent<ContentSizeFitter>();
         csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -87,7 +89,7 @@ public class PauseMenuPowerUpList : MonoBehaviour
 
         var hlg = row.AddComponent<HorizontalLayoutGroup>();
         hlg.spacing                = 14f;
-        hlg.childAlignment         = TextAnchor.MiddleLeft;
+        hlg.childAlignment         = TextAnchor.MiddleCenter;
         hlg.childControlWidth      = false;
         hlg.childControlHeight     = false;
         hlg.childForceExpandWidth  = false;
@@ -109,9 +111,16 @@ public class PauseMenuPowerUpList : MonoBehaviour
 
         _icons.Add(iconGO.transform);
         float baseSpeed = Random.Range(1.1f, 1.9f);
-        _pulseSpeeds.Add(item.type == PowerUpType.ExtraLife ? baseSpeed * 10f : baseSpeed);
+        float pulseSpeed = item.type == PowerUpType.ExtraLife ? baseSpeed * 3f
+                         : item.type == PowerUpType.Bomb      ? baseSpeed * 2.5f
+                         : baseSpeed;
+        _pulseSpeeds.Add(pulseSpeed);
         _pulseOffsets.Add(Random.Range(0f, Mathf.PI * 2f));
-        _rotates.Add(item.type != PowerUpType.ExtraLife);
+        float pulseAmp = item.type == PowerUpType.Bomb      ? 0.22f
+                       : item.type == PowerUpType.ExtraLife ? 0.18f
+                       : 0.09f;
+        _pulseAmplitudes.Add(pulseAmp);
+        _rotates.Add(item.type != PowerUpType.ExtraLife && item.type != PowerUpType.Bomb);
 
         // Nombre 
         var labelGO = new GameObject("Label");
@@ -125,6 +134,8 @@ public class PauseMenuPowerUpList : MonoBehaviour
         tmp.color     = labelColor;
         tmp.alignment = TextAlignmentOptions.MidlineLeft;
         tmp.fontStyle = FontStyles.Bold;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
+        tmp.overflowMode       = TextOverflowModes.Overflow;
     }
 
     static string NameForType(PowerUpType t)
@@ -155,7 +166,7 @@ public class PauseMenuPowerUpList : MonoBehaviour
             case PowerUpType.ExtraLife:     return Color.white;
             case PowerUpType.Shield:        return new Color(0.4f, 0.8f, 1f);
             case PowerUpType.SpeedBoost:    return Color.white;
-            case PowerUpType.Bomb:          return new Color(1f,   0.3f, 0.3f);
+            case PowerUpType.Bomb:          return Color.white;
             case PowerUpType.OrbitDrones:   return Color.white;
             default:                        return Color.white;
         }

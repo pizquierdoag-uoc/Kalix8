@@ -84,7 +84,7 @@ SpriteRenderer:
   m_SortingLayer: 2
   m_SortingOrder: 12
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -6302563758487680414, guid: 0735ff623b233964fa11f4e69ce3a24a, type: 3}
+  m_Sprite: {fileID: -6302563758487680414, guid: 47f6b212a328f424a8b93ac8df5d6a4d, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -147,6 +147,12 @@ MonoBehaviour:
   bobAmount: 0.3
   bobSpeed: 2
   lifetime: 12
+  rotate: 0
+  rotateSpeed: 45
+  breathe: 1
+  breatheAmount: 0.18
+  breatheSpeed: 0.5
+  spriteScale: 0.63
   autoColor: 1
 --- !u!114 &2219617422588720146
 MonoBehaviour:

@@ -1,12 +1,11 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 
-public class GameManager : MonoBehaviour
+public class GameManager : Singleton<GameManager>
 {
-    public static GameManager Instance { get; private set; }
-
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void EnsureExists()
     {
@@ -14,27 +13,35 @@ public class GameManager : MonoBehaviour
         new GameObject("GameManager").AddComponent<GameManager>();
     }
 
-    void Awake()
-    {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
-    }
-
     public enum GameState { MainMenu, Playing, Paused, GameOver }
     public GameState CurrentState { get; private set; }
 
-    // Las vidas iniciales se leen de GameSettings (se cambian desde Opciones)
     public int  CurrentLives   { get; private set; }
     public int  CurrentScore   { get; private set; }
     public int  ContinuesLeft  { get; private set; }
     public bool IsPlaying      => CurrentState == GameState.Playing;
 
-    void Start()
+    // Cooldown para evitar doble-detección del botón Start con timeScale=0
+    float _pauseCooldown;
+
+    protected override void Awake()
     {
-        string scene = SceneManager.GetActiveScene().name;
-        if (scene == "Game")         ChangeState(GameState.Playing);
-        else if (scene == "MainMenu") ChangeState(GameState.MainMenu);
+        base.Awake();
+        // Suscribimos a sceneLoaded para detectar cambios de escena cada vez,
+        // no solo en el Start() inicial (GameManager es DontDestroyOnLoad).
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    protected override void OnDestroy()
+    {
+        base.OnDestroy();
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name == "Game")          ChangeState(GameState.Playing);
+        else if (scene.name == "MainMenu") ChangeState(GameState.MainMenu);
         // TitleScreen: el TitleScreenController gestiona la música; GameManager no interviene
     }
 
@@ -65,49 +72,60 @@ public class GameManager : MonoBehaviour
                 break;
 
             case GameState.GameOver:
-                Time.timeScale = 1f;
-                // Guardo marcador
+                // El juego sigue corriendo (timeScale=1): enemigos, scroll y balas
+                // continúan. Solo el jugador está muerto. Al continuar reaparece.
                 SaveHiScore();
-                // Ponemos música Game Over
                 AudioManager.Instance?.PlayGameOverMusic();
-                HUDController.Instance?.ShowGameOver();                
+                HUDController.Instance?.ShowGameOver();
                 break;
         }        
     }
 
     public void StartGame()
     {
-        ChangeState(GameState.Playing); // Estado playing
-        SceneManager.LoadScene("Game"); // Cargamos Game
+        // No cambiamos el estado aquí: Start() detectará la escena "Game"
+        // y llamará a ChangeState(Playing) tras cargarse, evitando doble
+        // inicialización y que la música de juego empiece todavía en MainMenu.
+        SceneManager.LoadScene("Game");
     }
 
     public void PauseGame()
     {
-        // Sólo para estdo "playing"
-        if (CurrentState == GameState.Playing) 
+        if (CurrentState == GameState.Playing)
             ChangeState(GameState.Paused);
     }
 
     public void ResumeGame()
     {
-        // Sólo si estamos en Paused
         if (CurrentState == GameState.Paused)
-        {            
-            CurrentState = GameState.Playing;       // Cambiamos estado
+        {
+            CurrentState = GameState.Playing;
             Time.timeScale = 1f;
-            AudioManager.Instance?.ResumeMusic();   // Activa música
-            HUDController.Instance?.HidePause();    // Escondemos PAUSE
+            AudioManager.Instance?.ResumeMusic();
+            HUDController.Instance?.HidePause();
         }
     }
 
     public void GoToMainMenu()
     {
+        // Restaura el contador de vidas al valor inicial para que cualquier código
+        // que acceda a CurrentLives en el menú no lea un valor residual de 0.
+        CurrentLives = GameSettings.StartingLives;
+
+        // Limpia el estado interno de los singletons persistentes que acumulan
+        // referencias a GameObjects de la escena de juego.
+        PowerUpManager.Instance?.ResetOnMenuReturn();
+
         ChangeState(GameState.MainMenu);
         SceneManager.LoadScene("MainMenu");
     }
 
     public void GoToTitleScreen()
     {
+        // Mismo saneamiento que GoToMainMenu para evitar referencias colgantes.
+        CurrentLives = GameSettings.StartingLives;
+        PowerUpManager.Instance?.ResetOnMenuReturn();
+
         ChangeState(GameState.MainMenu);
         SceneManager.LoadScene("TitleScreen");
     }
@@ -130,13 +148,9 @@ public class GameManager : MonoBehaviour
         ContinuesLeft--;
         CurrentLives = GameSettings.StartingLives;
         CurrentState = GameState.Playing;
-        Time.timeScale = 1f;
 
         AudioManager.Instance?.PlayGameMusic();
-        FindAnyObjectByType<ScrollManager>()?.ResumeScroll();
-
-        EnemyManager em = FindAnyObjectByType<EnemyManager>();
-        if (em != null) em.enabled = true;
+        FindAnyObjectByType<ScrollManager>()?.ResumeScroll();  // seguridad: limpia IsPaused
 
         HUDController.Instance?.UpdateLives(CurrentLives);
         HUDController.Instance?.HideGameOver();
@@ -186,17 +200,39 @@ public class GameManager : MonoBehaviour
     void SaveHiScore()
     {
         int current = ScoreManager.Instance != null ? ScoreManager.Instance.CurrentScore : CurrentScore;
-        int saved   = PlayerPrefs.GetInt("HiScore", 0);
-        // Si es mayor que el HI SCORE actuala lo ponemos como HI SCORE
+        int saved = PlayerPrefs.GetInt("HiScore", 0);
         if (current > saved) { PlayerPrefs.SetInt("HiScore", current); PlayerPrefs.Save(); }
     }
 
     void Update()
     {
-        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        // unscaledDeltaTime funciona aunque timeScale = 0
+        _pauseCooldown -= Time.unscaledDeltaTime;
+
+        bool pausePressed = _pauseCooldown <= 0f
+                         && ((Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+                          || (Gamepad.current  != null && Gamepad.current.startButton.wasPressedThisFrame));
+
+        if (pausePressed)
         {
-            if (CurrentState == GameState.Playing)       PauseGame();
-            else if (CurrentState == GameState.Paused)   ResumeGame();
+            _pauseCooldown = 0.3f;   // 300 ms de margen para evitar doble disparo
+
+            if (CurrentState == GameState.Playing)
+            {
+                // Desactivamos el EventSystem para que el mando no interactúe
+                // con la UI mientras el juego está en marcha
+                if (EventSystem.current != null) EventSystem.current.enabled = false;
+                PauseGame();
+                if (EventSystem.current != null) EventSystem.current.enabled = true;
+            }
+            else if (CurrentState == GameState.Paused)
+            {
+                // Desactivamos el EventSystem durante el frame de reanudación
+                // para que el botón Start no sea captado también como Submit UI
+                if (EventSystem.current != null) EventSystem.current.enabled = false;
+                ResumeGame();
+                if (EventSystem.current != null) EventSystem.current.enabled = true;
+            }
         }
     }
 }

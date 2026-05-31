@@ -1,20 +1,7 @@
 using UnityEngine;
 
-public class ScoreManager : MonoBehaviour
+public class ScoreManager : Singleton<ScoreManager>
 {
-    public static ScoreManager Instance { get; private set; }
-
-    void Awake()
-    {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
-    }
-
-    [Header("Puntos base por enemigo destruido")]
-    public int pointsSmallEnemy  = 100;
-    public int pointsMediumEnemy = 300;
-    public int pointsBoss        = 5000;
 
     public int CurrentScore { get; private set; }
     public int HiScore      { get; private set; }
@@ -38,10 +25,6 @@ public class ScoreManager : MonoBehaviour
             HUDController.Instance?.UpdateHiScore(HiScore);
         }
     }
-
-    public void AddScoreSmallEnemy()  => AddScore(pointsSmallEnemy);
-    public void AddScoreMediumEnemy() => AddScore(pointsMediumEnemy);
-    public void AddScoreBoss()        => AddScore(pointsBoss);
 
     public void ResetScore()
     {

@@ -21,7 +21,8 @@ public class MenuKeyboardNav : MonoBehaviour
     [Header("Prefijo del botón seleccionado")]
     public string prefix = "► ";
 
-    int _index;
+    int   _index;
+    float _optionsClosedAt = -99f;  // unscaledTime cuando se cerró el panel de opciones
     string[] _originalTexts;
 
     void OnEnable()
@@ -38,6 +39,7 @@ public class MenuKeyboardNav : MonoBehaviour
 
     void CacheTexts()
     {
+        if (buttons == null) { _originalTexts = new string[0]; return; }
         _originalTexts = new string[buttons.Length];
         for (int i = 0; i < buttons.Length; i++)
         {
@@ -63,17 +65,29 @@ public class MenuKeyboardNav : MonoBehaviour
 
     void Update()
     {
-        // Para no navegar si el panel de opciones está abierto
-        if (optionsPanel != null && optionsPanel.activeSelf) return;
-        if (Keyboard.current == null) return;
+        bool panelActive = optionsPanel != null && optionsPanel.activeSelf;
 
-        bool down  = Keyboard.current.downArrowKey.wasPressedThisFrame
-                  || Keyboard.current.sKey.wasPressedThisFrame;
-        bool up    = Keyboard.current.upArrowKey.wasPressedThisFrame
-                  || Keyboard.current.wKey.wasPressedThisFrame;
-        bool enter = Keyboard.current.enterKey.wasPressedThisFrame
-                  || Keyboard.current.numpadEnterKey.wasPressedThisFrame
-                  || Keyboard.current.spaceKey.wasPressedThisFrame;
+        if (panelActive)
+        {
+            // Mientras el panel está abierto actualizamos el timestamp de cierre.
+            // Así, cuando se cierre, el cooldown empieza desde este momento.
+            _optionsClosedAt = Time.unscaledTime;
+            return;
+        }
+
+        // Cooldown de 0.3 s tras cerrar opciones para evitar que el botón
+        // que cerró el panel también dispare el menú principal.
+        if (Time.unscaledTime - _optionsClosedAt < 0.3f) return;
+
+        var kb = Keyboard.current;
+        var gp = Gamepad.current;
+
+        bool down  = (kb != null && (kb.downArrowKey.wasPressedThisFrame  || kb.sKey.wasPressedThisFrame))
+                  || (gp != null && (gp.dpad.down.wasPressedThisFrame     || gp.leftStick.down.wasPressedThisFrame));
+        bool up    = (kb != null && (kb.upArrowKey.wasPressedThisFrame    || kb.wKey.wasPressedThisFrame))
+                  || (gp != null && (gp.dpad.up.wasPressedThisFrame       || gp.leftStick.up.wasPressedThisFrame));
+        bool enter = (kb != null && (kb.enterKey.wasPressedThisFrame      || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame))
+                  || (gp != null && (gp.buttonSouth.wasPressedThisFrame   || gp.startButton.wasPressedThisFrame));
 
         if (down)
         {

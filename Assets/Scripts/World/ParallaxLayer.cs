@@ -16,11 +16,17 @@ public class ParallaxLayer : MonoBehaviour
     [Tooltip("Solapamiento entre tiles para eliminar el seam visible (0.02–0.1 suele bastar)")]
     [Range(0f, 0.5f)] public float tileOverlap = 0.05f;
 
+    [Tooltip("Voltea TileB horizontalmente para eliminar el corte cuando la imagen no es seamless")]
+    public bool mirrorTileB = false;
+
     [Header("SingleObject — X de reaparición")]
     public float respawnX = 25f;
 
+    [Tooltip("Margen extra (unidades) que se suma a los bounds del sprite para evitar culling prematuro")]
+    public float boundsMargin = 4f;
+
     float     _baseSpeed;
-    float     _scrollOffset;
+    float     _singleHalfWidth;   // mitad del ancho del sprite (calculado en Awake)
     Transform _tileA;
     Transform _tileB;
 
@@ -28,20 +34,66 @@ public class ParallaxLayer : MonoBehaviour
     {
         if (mode == LayerMode.Tiled)
             InitTiles();
+        else
+            InitSingle();
+    }
+
+    void InitSingle()
+    {
+        var sr = GetComponent<SpriteRenderer>();
+        if (sr == null) return;
+
+        // Calculamos el semiancho para usarlo en la condición de reposicionamiento
+        _singleHalfWidth = sr.bounds.size.x * 0.5f;
+
+        // Extendemos los localBounds para evitar que Unity descarte el sprite
+        // por frustum culling antes de que salga visualmente de pantalla
+        Bounds b = sr.localBounds;
+        b.Expand(new Vector3(boundsMargin * 2f, 0f, 0f));
+        sr.localBounds = b;
     }
 
     void InitTiles()
     {
-        if (transform.childCount < 2)
+        if (transform.childCount == 0)
         {
-            Debug.LogError($"[ParallaxLayer] '{name}' modo Tiled requiere 2 hijos (TileA y TileB).");
+            Debug.LogError($"[ParallaxLayer] '{name}' modo Tiled requiere al menos 1 hijo (TileA).");
             enabled = false;
             return;
         }
+
         _tileA = transform.GetChild(0);
-        _tileB = transform.GetChild(1);
+
+        if (transform.childCount >= 2)
+        {
+            _tileB = transform.GetChild(1);
+        }
+        else
+        {
+            var goB = Instantiate(_tileA.gameObject, transform);
+            goB.name = _tileA.name + "_Auto";
+            _tileB = goB.transform;
+        }
+
+        var srA = _tileA.GetComponent<SpriteRenderer>();
+        if (srA != null && srA.sprite != null)
+        {
+            float actualWidth = srA.bounds.size.x;
+            if (actualWidth > 0.01f && Mathf.Abs(actualWidth - tileWidth) > 0.05f)
+            {
+                Debug.Log($"[ParallaxLayer] '{name}': tileWidth corregido de {tileWidth} a {actualWidth} (ancho real del sprite).");
+                tileWidth = actualWidth;
+            }
+        }
+
         _tileA.localPosition = Vector3.zero;
-        _tileB.localPosition = new Vector3(tileWidth, 0f, 0f);
+        _tileB.localPosition = new Vector3(tileWidth - tileOverlap, 0f, 0f);
+
+        if (mirrorTileB)
+        {
+            var sr = _tileB.GetComponent<SpriteRenderer>();
+            if (sr != null) sr.flipX = true;
+        }
     }
 
     void Update()
@@ -53,31 +105,47 @@ public class ParallaxLayer : MonoBehaviour
         else                         ScrollSingle(delta);
     }
 
-    // Mueve cada tile en espacio local; el padre permanece estático.
     void ScrollTiled(float delta)
     {
-        _scrollOffset = (_scrollOffset + delta) % tileWidth;
+        // Scroll independiente por tile + teleport al cruzar el umbral izquierdo.
+        // Mantiene la alternancia ORIG/FLIP cuando mirrorTileB=true (cada tile conserva
+        // su flip; al teletransportarse a la derecha del otro la alternancia se preserva).
+        _tileA.localPosition += Vector3.left * delta;
+        _tileB.localPosition += Vector3.left * delta;
 
-        Vector3 a = _tileA.localPosition;
-        Vector3 b = _tileB.localPosition;
-        a.x = -_scrollOffset;
-        b.x = tileWidth - tileOverlap - _scrollOffset;
-        _tileA.localPosition = a;
-        _tileB.localPosition = b;
+        float threshold = -tileWidth;
+        float step      = tileWidth - tileOverlap;
+
+        if (_tileA.localPosition.x <= threshold)
+        {
+            Vector3 p = _tileB.localPosition;
+            p.x += step;
+            _tileA.localPosition = p;
+        }
+        else if (_tileB.localPosition.x <= threshold)
+        {
+            Vector3 p = _tileA.localPosition;
+            p.x += step;
+            _tileB.localPosition = p;
+        }
     }
 
     void ScrollSingle(float delta)
     {
         transform.Translate(Vector3.left * delta, Space.World);
-        if (transform.position.x < -respawnX)
+
+        // Usamos el borde DERECHO del sprite (pivot + semiancho) como referencia
+        // para asegurarnos de que el sprite esté completamente fuera de pantalla
+        // antes de reposicionarlo.
+        float rightEdge = transform.position.x + _singleHalfWidth;
+        if (rightEdge < -respawnX)
         {
             Vector3 p = transform.position;
-            p.x = respawnX;
+            p.x = respawnX + _singleHalfWidth;
             transform.position = p;
         }
     }
 
-    // Llamado por ScrollManager en cada frame.
     public void SetBaseSpeed(float speed) => _baseSpeed = speed;
 
     public void Pause()  => enabled = false;

@@ -23,7 +23,8 @@ public class PlayerEngineAnim : MonoBehaviour
             return;
         }
         _anim.fps = fps;
-        _anim.frames = (idleFrames != null && idleFrames.Length > 0) ? idleFrames : thrustFrames;
+        var initial = (idleFrames != null && idleFrames.Length > 0) ? idleFrames : thrustFrames;
+        _anim.SetFrames(initial);
     }
 
     void Update()
@@ -47,8 +48,9 @@ public class PlayerEngineAnim : MonoBehaviour
         bool nowThrusting = new Vector2(h, v).magnitude >= thrustThreshold;
         if (nowThrusting == _thrusting) return;
 
-        _thrusting  = nowThrusting;
-        _anim.frames = _thrusting && thrustFrames != null && thrustFrames.Length > 0
-                       ? thrustFrames : idleFrames;
+        _thrusting = nowThrusting;
+        var next   = _thrusting && thrustFrames != null && thrustFrames.Length > 0
+                     ? thrustFrames : idleFrames;
+        _anim.SetFrames(next);
     }
 }

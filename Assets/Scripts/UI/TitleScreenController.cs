@@ -26,6 +26,21 @@ public class TitleScreenController : MonoBehaviour
     public float pressStartDelay  = 0.8f;  // Pausa antes de mostrar "PRESS ANY KEY"
     public float autoAdvanceTime  = 20f;   // Avance automático si no hay input
 
+    [Header("Efecto salida")]
+    public float exitBombDelay = 0.25f;  // Segundos tras PlayExit antes del flash de bomba
+
+    [Header("Banda sonora de explosiones (salida)")]
+    [Tooltip("Duración total durante la cual se reproducirán SFX de explosión")]
+    public float bombSfxDuration   = 4f;
+    [Tooltip("Intervalo mínimo entre SFX de explosión (segundos)")]
+    public float bombSfxMinSpacing = 0.13f;
+    [Tooltip("Intervalo máximo entre SFX de explosión (segundos)")]
+    public float bombSfxMaxSpacing = 0.32f;
+    [Tooltip("Probabilidad (0-1) de usar el clip de bomba grande en lugar del de explosión pequeña")]
+    [Range(0f,1f)] public float bombSfxBigChance = 0.25f;
+    [Tooltip("Multiplicador de volumen aplicado a cada explosión (evita saturar al solaparse)")]
+    [Range(0f,1f)] public float bombSfxVolumeScale = 0.55f;
+
     [Header("Escena destino")]
     public string mainMenuScene = "MainMenu";
 
@@ -44,7 +59,18 @@ public class TitleScreenController : MonoBehaviour
         if (!_canSkip || _exiting) return;
 
         _idleTimer += Time.deltaTime;
-        if ((Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame) || _idleTimer >= autoAdvanceTime)
+        bool gamepadPressed = Gamepad.current != null && (
+            Gamepad.current.buttonSouth.wasPressedThisFrame  ||
+            Gamepad.current.buttonNorth.wasPressedThisFrame  ||
+            Gamepad.current.buttonEast.wasPressedThisFrame   ||
+            Gamepad.current.buttonWest.wasPressedThisFrame   ||
+            Gamepad.current.startButton.wasPressedThisFrame  ||
+            Gamepad.current.leftShoulder.wasPressedThisFrame ||
+            Gamepad.current.rightShoulder.wasPressedThisFrame);
+
+        if ((Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame)
+         || gamepadPressed
+         || _idleTimer >= autoAdvanceTime)
             StartCoroutine(ExitToMenu());
     }
 
@@ -116,10 +142,45 @@ public class TitleScreenController : MonoBehaviour
         if (pressStartText != null) pressStartText.gameObject.SetActive(false);
 
         shipAnim?.PlayExit();
+        yield return new WaitForSeconds(exitBombDelay);
+        BombScreenEffect.Instance?.Trigger();
+        StartCoroutine(PlayBombExplosionSoundtrack());
         if (shipAnim != null)
             yield return new WaitUntil(() => shipAnim.ExitComplete);
         yield return StartCoroutine(FadeTo(1f, 2.1f));
         SceneManager.LoadScene(mainMenuScene);
+    }
+
+    /// <summary>
+    /// Reproduce una ráfaga de SFX de explosión sincronizada con la animación visual
+    /// de BombScreenEffect (20 explosiones en ~4s). Mezcla la bomba grande con la
+    /// explosión pequeña a pitch/volumen variados para crear sensación de campo de batalla
+    /// sin saturar el canal de audio.
+    /// </summary>
+    IEnumerator PlayBombExplosionSoundtrack()
+    {
+        var am = AudioManager.Instance;
+        if (am == null) yield break;
+
+        // Boom inicial fuerte que marca el inicio del caos
+        am.PlaySFXVaried(am.sfxBombExplosion, 0.95f, 1.05f, 1f);
+
+        float elapsed = 0f;
+        while (elapsed < bombSfxDuration)
+        {
+            float wait = Random.Range(bombSfxMinSpacing, bombSfxMaxSpacing);
+            yield return new WaitForSecondsRealtime(wait);
+            elapsed += wait;
+
+            AudioClip clip = (Random.value < bombSfxBigChance && am.sfxBombExplosion != null)
+                ? am.sfxBombExplosion
+                : (am.sfxEnemyDeath != null ? am.sfxEnemyDeath : am.sfxBombExplosion);
+            if (clip == null) continue;
+
+            // Volumen y pitch decreciendo ligeramente hacia el final
+            float fade = Mathf.Lerp(1f, 0.55f, elapsed / bombSfxDuration);
+            am.PlaySFXVaried(clip, 0.78f, 1.22f, bombSfxVolumeScale * fade);
+        }
     }
 
     IEnumerator FadeTo(float target, float duration)

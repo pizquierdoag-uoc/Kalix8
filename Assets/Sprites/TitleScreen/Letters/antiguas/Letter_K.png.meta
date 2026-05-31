@@ -1,0 +1,806 @@
+fileFormatVersion: 2
+guid: d61c7a5e58c2463d96c3fabf64a2084b
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 5181631292519395574
+    second: Letter_K_0
+  - first:
+      213: 8949820189987798688
+    second: Letter_K_1
+  - first:
+      213: -1128197270042309294
+    second: Letter_K_2
+  - first:
+      213: -5223290649482801802
+    second: Letter_K_3
+  - first:
+      213: -6860882011378626341
+    second: Letter_K_4
+  - first:
+      213: 1899549622948789479
+    second: Letter_K_5
+  - first:
+      213: 7886510052209351176
+    second: Letter_K_6
+  - first:
+      213: -2074272162179659466
+    second: Letter_K_7
+  - first:
+      213: -8248451869046943893
+    second: Letter_K_8
+  - first:
+      213: -8042254657506653720
+    second: Letter_K_9
+  - first:
+      213: 2424360587087818162
+    second: Letter_K_10
+  - first:
+      213: -7331364049727301696
+    second: Letter_K_11
+  - first:
+      213: -6687897765939310922
+    second: Letter_K_12
+  - first:
+      213: 5260342268486521473
+    second: Letter_K_13
+  - first:
+      213: -1396761415308950356
+    second: Letter_K_14
+  - first:
+      213: 7385182033778831187
+    second: Letter_K_15
+  - first:
+      213: 5765060266091467053
+    second: Letter_K_16
+  - first:
+      213: -2057742373009218059
+    second: Letter_K_17
+  - first:
+      213: -2669851597748740204
+    second: Letter_K_18
+  - first:
+      213: -1056108261181205266
+    second: Letter_K_19
+  - first:
+      213: -7566468102063701080
+    second: Letter_K_20
+  - first:
+      213: 5365501138419330116
+    second: Letter_K_21
+  - first:
+      213: -1590203406816998389
+    second: Letter_K_22
+  - first:
+      213: -4256765890785539505
+    second: Letter_K_23
+  - first:
+      213: 1800914564615927023
+    second: Letter_K_24
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WindowsStoreApps
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Letter_K_0
+      rect:
+        serializedVersion: 2
+        x: 107
+        y: 57
+        width: 778
+        height: 826
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6f0baa3053ad8e740800000000000000
+      internalID: 5181631292519395574
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_1
+      rect:
+        serializedVersion: 2
+        x: 178
+        y: 286
+        width: 12
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0ae77db6b06243c70800000000000000
+      internalID: 8949820189987798688
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_2
+      rect:
+        serializedVersion: 2
+        x: 188
+        y: 232
+        width: 20
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 25d00927f86d750f0800000000000000
+      internalID: -1128197270042309294
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_3
+      rect:
+        serializedVersion: 2
+        x: 618
+        y: 277
+        width: 7
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 67d45f614d42387b0800000000000000
+      internalID: -5223290649482801802
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_4
+      rect:
+        serializedVersion: 2
+        x: 626
+        y: 271
+        width: 7
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bd0d8e1492049c0a0800000000000000
+      internalID: -6860882011378626341
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_5
+      rect:
+        serializedVersion: 2
+        x: 634
+        y: 279
+        width: 15
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7ecf61d515e8c5a10800000000000000
+      internalID: 1899549622948789479
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_6
+      rect:
+        serializedVersion: 2
+        x: 659
+        y: 283
+        width: 17
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 80a5c73ab13827d60800000000000000
+      internalID: 7886510052209351176
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_7
+      rect:
+        serializedVersion: 2
+        x: 659
+        y: 245
+        width: 9
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 639cccd5574b633e0800000000000000
+      internalID: -2074272162179659466
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_8
+      rect:
+        serializedVersion: 2
+        x: 670
+        y: 227
+        width: 12
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b6fcc8e2abc978d80800000000000000
+      internalID: -8248451869046943893
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_9
+      rect:
+        serializedVersion: 2
+        x: 675
+        y: 244
+        width: 17
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8e9c51aaffb246090800000000000000
+      internalID: -8042254657506653720
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_10
+      rect:
+        serializedVersion: 2
+        x: 679
+        y: 199
+        width: 12
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2bda3d0fb1f05a120800000000000000
+      internalID: 2424360587087818162
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_11
+      rect:
+        serializedVersion: 2
+        x: 684
+        y: 229
+        width: 14
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0c75fe07d33c14a90800000000000000
+      internalID: -7331364049727301696
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_12
+      rect:
+        serializedVersion: 2
+        x: 695
+        y: 191
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6be0f077a60df23a0800000000000000
+      internalID: -6687897765939310922
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_13
+      rect:
+        serializedVersion: 2
+        x: 698
+        y: 270
+        width: 44
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1829c163c6d700940800000000000000
+      internalID: 5260342268486521473
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_14
+      rect:
+        serializedVersion: 2
+        x: 698
+        y: 170
+        width: 9
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ca4c984a4e4bd9ce0800000000000000
+      internalID: -1396761415308950356
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_15
+      rect:
+        serializedVersion: 2
+        x: 699
+        y: 183
+        width: 18
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 35febfc6eef6d7660800000000000000
+      internalID: 7385182033778831187
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_16
+      rect:
+        serializedVersion: 2
+        x: 700
+        y: 232
+        width: 22
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d21d91574cb910050800000000000000
+      internalID: 5765060266091467053
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_17
+      rect:
+        serializedVersion: 2
+        x: 709
+        y: 163
+        width: 18
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5f52481d63e6173e0800000000000000
+      internalID: -2057742373009218059
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_18
+      rect:
+        serializedVersion: 2
+        x: 718
+        y: 181
+        width: 26
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 49f5d290e18c2fad0800000000000000
+      internalID: -2669851597748740204
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_19
+      rect:
+        serializedVersion: 2
+        x: 731
+        y: 217
+        width: 10
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ee450f7c123f751f0800000000000000
+      internalID: -1056108261181205266
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_20
+      rect:
+        serializedVersion: 2
+        x: 738
+        y: 256
+        width: 18
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8a34b2c99518ef690800000000000000
+      internalID: -7566468102063701080
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_21
+      rect:
+        serializedVersion: 2
+        x: 747
+        y: 266
+        width: 18
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 44c20759bd6167a40800000000000000
+      internalID: 5365501138419330116
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_22
+      rect:
+        serializedVersion: 2
+        x: 758
+        y: 181
+        width: 6
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b0c8e004d667ee9e0800000000000000
+      internalID: -1590203406816998389
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_23
+      rect:
+        serializedVersion: 2
+        x: 771
+        y: 284
+        width: 12
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f4a8ab3c9fdece4c0800000000000000
+      internalID: -4256765890785539505
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Letter_K_24
+      rect:
+        serializedVersion: 2
+        x: 791
+        y: 272
+        width: 15
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fe472ce31422ef810800000000000000
+      internalID: 1800914564615927023
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Letter_K_0: 5181631292519395574
+      Letter_K_1: 8949820189987798688
+      Letter_K_10: 2424360587087818162
+      Letter_K_11: -7331364049727301696
+      Letter_K_12: -6687897765939310922
+      Letter_K_13: 5260342268486521473
+      Letter_K_14: -1396761415308950356
+      Letter_K_15: 7385182033778831187
+      Letter_K_16: 5765060266091467053
+      Letter_K_17: -2057742373009218059
+      Letter_K_18: -2669851597748740204
+      Letter_K_19: -1056108261181205266
+      Letter_K_2: -1128197270042309294
+      Letter_K_20: -7566468102063701080
+      Letter_K_21: 5365501138419330116
+      Letter_K_22: -1590203406816998389
+      Letter_K_23: -4256765890785539505
+      Letter_K_24: 1800914564615927023
+      Letter_K_3: -5223290649482801802
+      Letter_K_4: -6860882011378626341
+      Letter_K_5: 1899549622948789479
+      Letter_K_6: 7886510052209351176
+      Letter_K_7: -2074272162179659466
+      Letter_K_8: -8248451869046943893
+      Letter_K_9: -8042254657506653720
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

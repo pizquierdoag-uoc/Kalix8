@@ -26,16 +26,13 @@ public class BombScreenEffect : MonoBehaviour
 
     public void Trigger()
     {
-        Debug.Log($"[BombScreenEffect] Trigger llamado. GameObject={gameObject.name} Scene={gameObject.scene.name}");
         if (frames == null || frames.Length == 0)
         {
             Debug.LogError("[BombScreenEffect] frames vacío.");
             return;
         }
-        int nonNull = 0;
-        foreach (var f in frames) if (f != null) nonNull++;
-        Debug.Log($"[BombScreenEffect] {frames.Length} slots, {nonNull} válidos, layer={sortingLayerName}, material={spriteMaterial}");
-        if (nonNull == 0) { Debug.LogError("[BombScreenEffect] Todos los sprites son null."); return; }
+        bool anyValid = System.Array.Exists(frames, f => f != null);
+        if (!anyValid) { Debug.LogError("[BombScreenEffect] Todos los sprites son null."); return; }
         StartCoroutine(SpawnSequence());
     }
 
@@ -47,7 +44,8 @@ public class BombScreenEffect : MonoBehaviour
         for (int i = 0; i < totalExplosions; i++)
         {
             SpawnOne(cam);
-            yield return new WaitForSeconds(interval);
+            // Realtime para que no quede colgada si el juego se pausa durante la animación
+            yield return new WaitForSecondsRealtime(interval);
         }
     }
 
@@ -83,8 +81,12 @@ public class BombScreenEffect : MonoBehaviour
         else
         {
             var shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default")
-                      ?? Shader.Find("Sprites/Default");
-            if (shader != null) sr.material = new Material(shader);
+                      ?? Shader.Find("Universal Render Pipeline/Unlit");
+            if (shader != null)
+                sr.material = new Material(shader);
+            else
+                Debug.LogWarning("[BombScreenEffect] spriteMaterial no asignado en Inspector. " +
+                                 "La explosión de bomba puede no verse en build. Asigna un material URP en el componente.");
         }
 
         var fx = go.AddComponent<ExplosionEffect>();
@@ -92,8 +94,6 @@ public class BombScreenEffect : MonoBehaviour
         fx.duration = explosionDuration;
 
         go.SetActive(true);
-        Debug.Log($"[BombFX] pos={pos} layer='{sr.sortingLayerName}' order={sr.sortingOrder} mat='{sr.material?.name}' sprite='{sr.sprite?.name}'");
-
         Destroy(go, explosionDuration + 0.1f);
     }
 }

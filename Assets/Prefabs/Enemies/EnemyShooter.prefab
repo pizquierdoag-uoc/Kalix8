@@ -146,7 +146,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
   maxHealth: 3
-  scoreValue: 100
+  scoreValue: 300
   dropChance: 0.18
   dropPrefabs: []
   hitEffect: {fileID: 0}
@@ -165,10 +165,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyShooter
   moveSpeed: 3
-  bulletPrefab: {fileID: 2280678355725377165, guid: cde3393f36a6e6d4eb5d7289d9bf7977, type: 3}
+  bulletPrefab: {fileID: 4270072310882590432, guid: 6d80891ad3a51ff4cbe68d53090a5c1c, type: 3}
   bulletSpeed: 5
-  fireRate: 2
-  firstShotDelay: 0.8
+  fireRate: 1.4
+  firstShotDelay: 0.3
+  verticalTracking: 0.4
+  trackingActivateX: 10
+  telegraphTime: 0.25
+  telegraphColor: {r: 1, g: 0.45, b: 0.45, a: 1}
+  shootScalePunch: 1.18
+  shootRecoverTime: 0.12
 --- !u!114 &-7444364675802895241
 MonoBehaviour:
   m_ObjectHideFlags: 0

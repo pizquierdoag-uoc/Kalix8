@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 226aa19440d2b5441a99f50b6572683d
+guid: 9b19ebd027259c54b8bb9bc8c2753752
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 3504377470489902495
-    second: BulletHoming2_0
+      213: -503181616776558066
+    second: BulletHoming_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -139,13 +139,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: BulletHoming2_0
+      name: BulletHoming_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 44
-        height: 12
+        width: 150
+        height: 150
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -154,8 +154,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f9dbe6f0ebc02a030800000000000000
-      internalID: 3504377470489902495
+      spriteID: e0ac68a4cf65409f0800000000000000
+      internalID: -503181616776558066
       vertices: []
       indices: 
       edges: []
@@ -174,7 +174,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      BulletHoming2_0: 3504377470489902495
+      BulletHoming_0: -503181616776558066
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

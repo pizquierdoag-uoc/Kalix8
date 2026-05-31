@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 using TMPro;
 
 public class StageClearManager : MonoBehaviour
@@ -50,6 +51,7 @@ public class StageClearManager : MonoBehaviour
 
     float _stageStartTime;
     bool  _triggered;
+    bool  _waitingForInput;   // true cuando el botón está visible y esperamos input
     int   _capturedScore;
     int   _capturedLives;
 
@@ -98,13 +100,6 @@ public class StageClearManager : MonoBehaviour
         if (btnContinue == null)
             btnContinue = resultPanel.GetComponentInChildren<Button>(true);
 
-        Debug.Log($"[StageClear] AutoWire — " +
-                  $"StageClear={txtStageClear != null} " +
-                  $"ScoreLabel={txtScoreLabel != null} ScoreValue={txtScoreValue != null} " +
-                  $"LivesBonus={txtLivesBonus != null} LivesBonusValue={txtLivesBonusValue != null} " +
-                  $"TimeBonus={txtTimeBonus != null} TimeBonusValue={txtTimeBonusValue != null} " +
-                  $"TotalLabel={txtTotalLabel != null} TotalValue={txtTotalValue != null} " +
-                  $"Btn={btnContinue != null}");
     }
 
     static bool Has(string name, string token) =>
@@ -120,9 +115,6 @@ public class StageClearManager : MonoBehaviour
         bool hasGame  = GameManager.Instance  != null;
         _capturedScore = hasScore ? ScoreManager.Instance.CurrentScore : 0;
         _capturedLives = hasGame  ? GameManager.Instance.CurrentLives  : 0;
-        Debug.Log($"[StageClear] TriggerStageClear — " +
-                  $"ScoreManager={hasScore} score={_capturedScore}  " +
-                  $"GameManager={hasGame} vidas={_capturedLives}");
 
         StartCoroutine(StageClearSequence());
     }
@@ -175,6 +167,30 @@ public class StageClearManager : MonoBehaviour
         yield return StartCoroutine(AnimateResults());
 
         if (btnContinue != null) btnContinue.gameObject.SetActive(true);
+        _waitingForInput = true;
+    }
+
+    void Update()
+    {
+        if (!_waitingForInput) return;
+
+        bool pressed =
+            // Teclado: cualquier tecla
+            (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame) ||
+            // Ratón: cualquier botón
+            (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame) ||
+            // Mando: botones principales
+            (Gamepad.current != null && (
+                Gamepad.current.buttonSouth.wasPressedThisFrame  ||
+                Gamepad.current.buttonNorth.wasPressedThisFrame  ||
+                Gamepad.current.buttonEast.wasPressedThisFrame   ||
+                Gamepad.current.startButton.wasPressedThisFrame));
+
+        if (pressed)
+        {
+            _waitingForInput = false;
+            GoToMainMenu();
+        }
     }
 
     void StopAllEnemies()
@@ -214,11 +230,12 @@ public class StageClearManager : MonoBehaviour
         int   baseScore  = _capturedScore;
         int   lives      = _capturedLives;
         int   livesBonus = lives * bonusPerLife;
-        float elapsed    = Time.realtimeSinceStartup - _stageStartTime;
+        // PhaseTime del HUD solo cuenta mientras se juega (excluye continues, game over y pausa)
+        float elapsed    = HUDController.Instance != null
+                           ? HUDController.Instance.PhaseTime
+                           : Time.realtimeSinceStartup - _stageStartTime;
         int   timeBonus  = Mathf.Max(0, Mathf.RoundToInt((maxBonusTime - elapsed) * pointsPerSecond));
         int   total      = baseScore + livesBonus + timeBonus;
-
-        Debug.Log($"[StageClear] score={baseScore}  vidas={lives}  livesBonus={livesBonus}  timeBonus={timeBonus}  total={total}  elapsed={elapsed:F1}s");
 
         // Limpia todos los textos al empezar
         if (txtScoreLabel      != null) txtScoreLabel.text      = "";
@@ -280,6 +297,7 @@ public class StageClearManager : MonoBehaviour
         yield return new WaitForSeconds(0.2f);
         yield return StartCoroutine(CountUp(txtTotalValue, 0, total, 3f));
 
+        ScoreManager.Instance?.AddScore(livesBonus + timeBonus);
         ScoreManager.Instance?.SaveHiScore();
     }
 
